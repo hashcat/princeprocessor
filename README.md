@@ -3,6 +3,8 @@ princeprocessor
 
 Standalone password candidate generator using the PRINCE algorithm
 
+The name PRINCE is used as an acronym and stands for PRobability INfinite Chained Elements, which are the building blocks of the algorithm
+
 Brief description
 --------------
 
