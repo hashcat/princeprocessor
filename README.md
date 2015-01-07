@@ -33,7 +33,7 @@ If you want to compile from source make sure you have GMP libraries and headers 
 
 `apt-get install libgmp-dev`
 
-Binary distrution
+Binary distribution
 --------------
 
 Binaries for Linux, Windows and OSX can be found here: https://hashcat.net/tools/princeprocessor/
