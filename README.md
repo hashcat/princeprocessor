@@ -37,4 +37,4 @@ If you want to compile from source make sure you have GMP libraries and headers 
 Binary distribution
 --------------
 
-Binaries for Linux, Windows and OSX can be found here: https://hashcat.net/tools/princeprocessor/
+Binaries for Linux, Windows and OSX can be found here: https://github.com/jsteube/princeprocessor/releases
