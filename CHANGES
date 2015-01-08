@@ -3,7 +3,8 @@
 - Open Source the project
 - License is MIT
 - Moved repository to github: https://github.com/jsteube/princeprocessor
-- CHANGES
-- LICENSE
-- README.md
+- Added CHANGES
+- Added LICENSE
+- Added README.md
+- Changed default value for --pw-max from 24 to 16 for faster startup time
 

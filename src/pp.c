@@ -21,7 +21,7 @@
  */
 
 #define IN_LEN_MIN      1
-#define IN_LEN_MAX      24
+#define IN_LEN_MAX      16
 #define PW_MIN          IN_LEN_MIN
 #define PW_MAX          IN_LEN_MAX
 #define ELEM_CNT_MIN    1
