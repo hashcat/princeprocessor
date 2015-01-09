@@ -308,7 +308,10 @@ static int sort_by_cnt (const void *p1, const void *p2)
   const pw_order_t *o1 = (const pw_order_t *) p1;
   const pw_order_t *o2 = (const pw_order_t *) p2;
 
-  return o1->cnt < o2->cnt;
+  // Descending order
+  if (o1->cnt > o2->cnt) return -1;
+  if (o1->cnt < o2->cnt) return  1;
+  return 0;
 }
 
 static int sort_by_ks (const void *p1, const void *p2)
