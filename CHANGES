@@ -1,6 +1,9 @@
 * v0.16 -> v0.17:
 
 - Fixed download url for binaries in README
+- Fixed copy paste bug in input verification
+- Fixed bug where pw_orders is not sorted
+- Removed O_BINARY for stderr
 
 * v0.15 -> v0.16:
 
