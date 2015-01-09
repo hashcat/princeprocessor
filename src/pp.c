@@ -121,94 +121,29 @@ static u64 DEF_WORDLEN_DIST[DEF_WORDLEN_DIST_CNT] =
   13
 };
 
-static const char *USAGE_MINI[] =
-{
-  "Usage: %s [options] < wordlist",
-  "",
-  "Try --help for more help.",
-  NULL
-};
+static const char USAGE_MINI[] =
+  "Usage: %s [options] < wordlist\n\n"
+  "Try --help for more help.\n";
 
-static const char *USAGE_BIG[] =
-{
-  "pp by atom, High-Performance word generator based on element permutations",
-  "",
-  "Usage: %s [options] < wordlist",
-  "",
-  "* Startup:",
-  "",
-  "  -V,  --version             Print version",
-  "  -h,  --help                Print help",
-  "",
-  "* Misc:",
-  "",
-  "       --keyspace            Calculate number of combinations",
-  "",
-  "* Optimization:",
-  "",
-  "       --pw-min=NUM          Print candidate if length is greater than NUM",
-  "       --pw-max=NUM          Print candidate if length is smaller than NUM",
-  "       --elem-cnt-min=NUM    Minimum number of elements per chain",
-  "       --elem-cnt-max=NUM    Maximum number of elements per chain",
-  "       --wl-dist-len         Calculate output length distribution from wordlist",
-  "",
-  "* Resources:",
-  "",
-  "  -s,  --skip=NUM            Start at specific position",
-  "  -l,  --limit=NUM           Stop at specific position",
-  "",
-  "* Files:",
-  "",
-  "  -o,  --output-file=FILE    Output-file",
-  "",
-  NULL
-};
-
-static void usage_mini_print (const char *progname)
-{
-  int i;
-
-  for (i = 0; USAGE_MINI[i] != NULL; i++)
-  {
-    printf (USAGE_MINI[i], progname);
-
-    #ifdef OSX
-    putchar ('\n');
-    #endif
-
-    #ifdef LINUX
-    putchar ('\n');
-    #endif
-
-    #ifdef WINDOWS
-    putchar ('\r');
-    putchar ('\n');
-    #endif
-  }
-}
-
-static void usage_big_print (const char *progname)
-{
-  int i;
-
-  for (i = 0; USAGE_BIG[i] != NULL; i++)
-  {
-    printf (USAGE_BIG[i], progname);
-
-    #ifdef OSX
-    putchar ('\n');
-    #endif
-
-    #ifdef LINUX
-    putchar ('\n');
-    #endif
-
-    #ifdef WINDOWS
-    putchar ('\r');
-    putchar ('\n');
-    #endif
-  }
-}
+static const char USAGE_BIG[] =
+  "pp by atom, High-Performance word generator based on element permutations\n\n"
+  "Usage: %s [options] < wordlist\n\n"
+  "* Startup:\n\n"
+  "  -V,  --version             Print version\n"
+  "  -h,  --help                Print help\n\n"
+  "* Misc:\n\n"
+  "       --keyspace            Calculate number of combinations\n\n"
+  "* Optimization:\n\n"
+  "       --pw-min=NUM          Print candidate if length is greater than NUM\n"
+  "       --pw-max=NUM          Print candidate if length is smaller than NUM\n"
+  "       --elem-cnt-min=NUM    Minimum number of elements per chain\n"
+  "       --elem-cnt-max=NUM    Maximum number of elements per chain\n"
+  "       --wl-dist-len         Calculate output length distribution from wordlist\n\n"
+  "* Resources:\n\n"
+  "  -s,  --skip=NUM            Start at specific position\n"
+  "  -l,  --limit=NUM           Stop at specific position\n\n"
+  "* Files:\n\n"
+  "  -o,  --output-file=FILE    Output-file\n\n";
 
 static void check_realloc_words (db_entry_t *db_entry)
 {
@@ -500,7 +435,7 @@ int main (int argc, char *argv[])
 
   if (usage)
   {
-    usage_big_print (argv[0]);
+    printf(USAGE_BIG, argv[0]);
 
     return (-1);
   }
@@ -514,7 +449,7 @@ int main (int argc, char *argv[])
 
   if (optind != argc)
   {
-    usage_mini_print (argv[0]);
+    printf(USAGE_MINI, argv[0]);
 
     return (-1);
   }
@@ -581,7 +516,6 @@ int main (int argc, char *argv[])
 
   #ifdef WINDOWS
   setmode (fileno (stdout), O_BINARY);
-  setmode (fileno (stderr), O_BINARY);
   #endif
 
   /**
