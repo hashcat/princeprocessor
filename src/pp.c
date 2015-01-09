@@ -526,7 +526,7 @@ int main (int argc, char *argv[])
     return (-1);
   }
 
-  if (pw_min <= 0)
+  if (pw_max <= 0)
   {
     fprintf (stderr, "Value of --pw-max (%d) must be greater than %d\n", pw_max, 0);
 
