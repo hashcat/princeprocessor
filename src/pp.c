@@ -584,7 +584,6 @@ int main (int argc, char *argv[])
 
   #ifdef WINDOWS
   setmode (fileno (stdout), O_BINARY);
-  setmode (fileno (stderr), O_BINARY);
   #endif
 
   /**
