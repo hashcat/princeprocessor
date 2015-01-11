@@ -4,6 +4,7 @@
 - Fixed copy paste bug in input verification
 - Fixed bug where pw_orders is not sorted
 - Removed O_BINARY for stderr
+- Removed some unused code
 
 * v0.15 -> v0.16:
 

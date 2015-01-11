@@ -435,7 +435,6 @@ int main (int argc, char *argv[])
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
   mpz_t total_ks_pos;     mpz_init_set_si (total_ks_pos,    0);
   mpz_t total_ks_left;    mpz_init_set_si (total_ks_left,   0);
-  mpz_t total_words_cnt;  mpz_init_set_si (total_words_cnt, 0);
   mpz_t skip;             mpz_init_set_si (skip,            0);
   mpz_t limit;            mpz_init_set_si (limit,           0);
 
@@ -741,10 +740,6 @@ int main (int argc, char *argv[])
 
       mpz_add (total_ks_cnt, total_ks_cnt, ks_cnt);
     }
-
-    const u64 words_cnt = db_entry->words_cnt;
-
-    mpz_add_ui (total_words_cnt, total_words_cnt, words_cnt);
   }
 
   if (keyspace)
@@ -916,7 +911,6 @@ int main (int argc, char *argv[])
   mpz_clear (total_ks_cnt);
   mpz_clear (total_ks_pos);
   mpz_clear (total_ks_left);
-  mpz_clear (total_words_cnt);
   mpz_clear (skip);
   mpz_clear (limit);
 
