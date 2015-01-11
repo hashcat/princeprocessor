@@ -5,6 +5,7 @@
 - Fixed bug where pw_orders is not sorted
 - Removed O_BINARY for stderr
 - Removed some unused code
+- Simplify some variable naming
 
 * v0.15 -> v0.16:
 

@@ -376,7 +376,7 @@ static void elem_ks (const elem_t *elem_buf, const db_entry_t *db_entries, mpz_t
   }
 }
 
-static void elem_set_pwbuf (const elem_t *elem_buf, const db_entry_t *db_entries, mpz_t ks_pos, char *pw_buf)
+static void elem_set_pwbuf (const elem_t *elem_buf, const db_entry_t *db_entries, mpz_t tmp, char *pw_buf)
 {
   const u8 *buf = elem_buf->buf;
 
@@ -390,13 +390,13 @@ static void elem_set_pwbuf (const elem_t *elem_buf, const db_entry_t *db_entries
 
     const u64 words_cnt = db_entry->words_cnt;
 
-    const u64 words_idx = mpz_fdiv_ui (ks_pos, words_cnt);
+    const u64 words_idx = mpz_fdiv_ui (tmp, words_cnt);
 
     memcpy (pw_buf, &db_entry->words_buf[words_idx], elem_key);
 
     pw_buf += elem_key;
 
-    mpz_div_ui (ks_pos, ks_pos, words_cnt);
+    mpz_div_ui (tmp, tmp, words_cnt);
   }
 }
 
@@ -430,13 +430,12 @@ static void elem_gen_with_idx (elem_t *elem_buf, const int len1, const int elems
 int main (int argc, char *argv[])
 {
   mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
-  mpz_t ks_pos;           mpz_init_set_si (ks_pos,          0);
-  mpz_t ks_cnt;           mpz_init_set_si (ks_cnt,          0);
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
   mpz_t total_ks_pos;     mpz_init_set_si (total_ks_pos,    0);
   mpz_t total_ks_left;    mpz_init_set_si (total_ks_left,   0);
   mpz_t skip;             mpz_init_set_si (skip,            0);
   mpz_t limit;            mpz_init_set_si (limit,           0);
+  mpz_t tmp;              mpz_init_set_si (tmp,             0);
 
   int     version       = 0;
   int     usage         = 0;
@@ -734,11 +733,11 @@ int main (int argc, char *argv[])
     {
       elem_t *elem_buf = &elems_buf[elems_idx];
 
-      elem_ks (elem_buf, db_entries, ks_cnt);
+      elem_ks (elem_buf, db_entries, tmp);
 
-      mpz_add (elem_buf->ks_cnt, elem_buf->ks_cnt, ks_cnt);
+      mpz_add (elem_buf->ks_cnt, elem_buf->ks_cnt, tmp);
 
-      mpz_add (total_ks_cnt, total_ks_cnt, ks_cnt);
+      mpz_add (total_ks_cnt, total_ks_cnt, tmp);
     }
   }
 
@@ -874,11 +873,11 @@ int main (int argc, char *argv[])
 
       for (u64 iter_pos_u64 = 0; iter_pos_u64 < iter_max_u64; iter_pos_u64++)
       {
-        mpz_add_ui (ks_pos, elem_buf->ks_pos, iter_pos_u64);
+        mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
 
         if (mpz_cmp (total_ks_pos, skip) >= 0)
         {
-          elem_set_pwbuf (elem_buf, db_entries, ks_pos, pw_buf);
+          elem_set_pwbuf (elem_buf, db_entries, tmp, pw_buf);
 
           out_push (out, pw_buf, pw_len + 1);
         }
@@ -906,13 +905,12 @@ int main (int argc, char *argv[])
    */
 
   mpz_clear (iter_max);
-  mpz_clear (ks_pos);
-  mpz_clear (ks_cnt);
   mpz_clear (total_ks_cnt);
   mpz_clear (total_ks_pos);
   mpz_clear (total_ks_left);
   mpz_clear (skip);
   mpz_clear (limit);
+  mpz_clear (tmp);
 
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
