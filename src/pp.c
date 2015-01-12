@@ -838,72 +838,68 @@ int main (int argc, char *argv[])
 
       db_entry_t *db_entry = &db_entries[pw_len];
 
-      const int elems_cnt = db_entry->elems_cnt;
-      const int elems_pos = db_entry->elems_pos;
-
-      if (elems_pos == elems_cnt) continue;
-
-      elem_t *elems_buf = db_entry->elems_buf;
-
-      elem_t *elem_buf = &elems_buf[elems_pos];
-
-      mpz_sub (iter_max, elem_buf->ks_cnt, elem_buf->ks_pos);
-
       const u64 words_cnt = wordlen_dist[pw_len];
 
-      if (mpz_cmp_ui (iter_max, words_cnt) > 0)
+      for (u64 words_pos = 0; words_pos < words_cnt; words_pos++)
       {
-        mpz_set_ui (iter_max, words_cnt);
-      }
+        const int elems_cnt = db_entry->elems_cnt;
+        const int elems_pos = db_entry->elems_pos;
 
-      mpz_sub (total_ks_left, total_ks_cnt, total_ks_pos);
+        if (elems_pos == elems_cnt) break;
 
-      if (mpz_cmp (total_ks_left, iter_max) < 0)
-      {
-        mpz_set (iter_max, total_ks_left);
-      }
+        elem_t *elems_buf = db_entry->elems_buf;
 
-      const u64 iter_max_u64 = mpz_get_ui (iter_max);
+        elem_t *elem_buf = &elems_buf[elems_pos];
 
-      mpz_add (tmp, total_ks_pos, iter_max);
+        mpz_sub (total_ks_left, total_ks_cnt, total_ks_pos);
 
-      if (mpz_cmp (tmp, skip) > 0)
-      {
-        u64 iter_pos_u64 = 0;
+        mpz_sub (iter_max, elem_buf->ks_cnt, elem_buf->ks_pos);
 
-        if (mpz_cmp (total_ks_pos, skip) < 0)
+        if (mpz_cmp (total_ks_left, iter_max) < 0)
         {
-          mpz_sub (tmp, skip, total_ks_pos);
-
-          iter_pos_u64 = mpz_get_ui (tmp);
+          mpz_set (iter_max, total_ks_left);
         }
 
-        for (; iter_pos_u64 < iter_max_u64; iter_pos_u64++)
+        const u64 iter_max_u64 = mpz_get_ui (iter_max);
+
+        mpz_add (tmp, total_ks_pos, iter_max);
+
+        if (mpz_cmp (tmp, skip) > 0)
         {
-          mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
+          mpz_set_si (tmp, 0);
 
-          elem_set_pwbuf (elem_buf, db_entries, tmp, pw_buf);
+          if (mpz_cmp (total_ks_pos, skip) < 0)
+          {
+            mpz_sub (tmp, skip, total_ks_pos);
+          }
 
-          out_push (out, pw_buf, pw_len + 1);
+          for (u64 iter_pos_u64 = mpz_get_ui (tmp); iter_pos_u64 < iter_max_u64; iter_pos_u64++)
+          {
+            mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
+
+            elem_set_pwbuf (elem_buf, db_entries, tmp, pw_buf);
+
+            out_push (out, pw_buf, pw_len + 1);
+          }
         }
 
-        out_flush (out);
-      }
+        mpz_add (total_ks_pos, total_ks_pos, iter_max);
 
-      mpz_add (total_ks_pos, total_ks_pos, iter_max);
+        mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
 
-      mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
+        if (mpz_cmp (elem_buf->ks_pos, elem_buf->ks_cnt) == 0)
+        {
+          db_entry->elems_pos++;
+        }
 
-      if (mpz_cmp (elem_buf->ks_pos, elem_buf->ks_cnt) == 0)
-      {
-        mpz_set_si (elem_buf->ks_pos, 0);
-
-        db_entry->elems_pos++;
+        if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
       }
 
       if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
     }
   }
+
+  out_flush (out);
 
   /**
    * cleanup
