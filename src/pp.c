@@ -808,10 +808,6 @@ int main (int argc, char *argv[])
       return (-1);
     }
 
-    mpz_t tmp;
-
-    mpz_init (tmp);
-
     mpz_add (tmp, skip, limit);
 
     if (mpz_cmp (tmp, total_ks_cnt) > 0)
@@ -822,8 +818,6 @@ int main (int argc, char *argv[])
     }
 
     mpz_set (total_ks_cnt, tmp);
-
-    mpz_clear (tmp);
   }
 
   /**
