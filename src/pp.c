@@ -362,7 +362,7 @@ static void elem_ks (const elem_t *elem_buf, const db_entry_t *db_entries, mpz_t
   const u8 *buf = elem_buf->buf;
   const int cnt = elem_buf->cnt;
 
-  mpz_init_set_si (ks_cnt, 1);
+  mpz_set_si (ks_cnt, 1);
 
   for (int idx = 0; idx < cnt; idx++)
   {
