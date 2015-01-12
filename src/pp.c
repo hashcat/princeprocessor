@@ -865,21 +865,32 @@ int main (int argc, char *argv[])
 
       const u64 iter_max_u64 = mpz_get_ui (iter_max);
 
-      for (u64 iter_pos_u64 = 0; iter_pos_u64 < iter_max_u64; iter_pos_u64++)
-      {
-        mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
+      mpz_add (tmp, total_ks_pos, iter_max);
 
-        if (mpz_cmp (total_ks_pos, skip) >= 0)
+      if (mpz_cmp (tmp, skip) > 0)
+      {
+        u64 iter_pos_u64 = 0;
+
+        if (mpz_cmp (total_ks_pos, skip) < 0)
         {
+          mpz_sub (tmp, skip, total_ks_pos);
+
+          iter_pos_u64 = mpz_get_ui (tmp);
+        }
+
+        for (; iter_pos_u64 < iter_max_u64; iter_pos_u64++)
+        {
+          mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
+
           elem_set_pwbuf (elem_buf, db_entries, tmp, pw_buf);
 
           out_push (out, pw_buf, pw_len + 1);
         }
 
-        mpz_add_ui (total_ks_pos, total_ks_pos, 1);
+        out_flush (out);
       }
 
-      out_flush (out);
+      mpz_add (total_ks_pos, total_ks_pos, iter_max);
 
       mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
 
