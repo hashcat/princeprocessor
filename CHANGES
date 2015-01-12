@@ -3,9 +3,12 @@
 - Fixed download url for binaries in README
 - Fixed copy paste bug in input verification
 - Fixed bug where pw_orders is not sorted
+- Fixed memory leak
 - Removed O_BINARY for stderr
 - Removed some unused code
-- Simplify some variable naming
+- Renamed variables so that they match the meaning from the presentation slides
+- Optimized seeking performance
+- Optimized output performance
 
 * v0.15 -> v0.16:
 
