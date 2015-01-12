@@ -311,6 +311,7 @@ static int sort_by_cnt (const void *p1, const void *p2)
   // Descending order
   if (o1->cnt > o2->cnt) return -1;
   if (o1->cnt < o2->cnt) return  1;
+
   return 0;
 }
 
@@ -733,11 +734,9 @@ int main (int argc, char *argv[])
     {
       elem_t *elem_buf = &elems_buf[elems_idx];
 
-      elem_ks (elem_buf, db_entries, tmp);
+      elem_ks (elem_buf, db_entries, elem_buf->ks_cnt);
 
-      mpz_set (elem_buf->ks_cnt, tmp);
-
-      mpz_add (total_ks_cnt, total_ks_cnt, tmp);
+      mpz_add (total_ks_cnt, total_ks_cnt, elem_buf->ks_cnt);
     }
   }
 
@@ -866,20 +865,24 @@ int main (int argc, char *argv[])
 
         if (mpz_cmp (tmp, skip) > 0)
         {
-          mpz_set_si (tmp, 0);
+          u64 iter_pos_u64 = 0;
 
           if (mpz_cmp (total_ks_pos, skip) < 0)
           {
             mpz_sub (tmp, skip, total_ks_pos);
+
+            iter_pos_u64 = mpz_get_ui (tmp);
           }
 
-          for (u64 iter_pos_u64 = mpz_get_ui (tmp); iter_pos_u64 < iter_max_u64; iter_pos_u64++)
+          while (iter_pos_u64 < iter_max_u64)
           {
             mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
 
             elem_set_pwbuf (elem_buf, db_entries, tmp, pw_buf);
 
             out_push (out, pw_buf, pw_len + 1);
+
+            iter_pos_u64++;
           }
         }
 
