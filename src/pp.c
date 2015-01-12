@@ -735,7 +735,7 @@ int main (int argc, char *argv[])
 
       elem_ks (elem_buf, db_entries, tmp);
 
-      mpz_add (elem_buf->ks_cnt, elem_buf->ks_cnt, tmp);
+      mpz_set (elem_buf->ks_cnt, tmp);
 
       mpz_add (total_ks_cnt, total_ks_cnt, tmp);
     }
