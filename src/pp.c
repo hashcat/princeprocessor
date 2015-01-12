@@ -20,18 +20,18 @@
  * License.....: MIT
  */
 
-#define IN_LEN_MIN      1
-#define IN_LEN_MAX      16
-#define PW_MIN          IN_LEN_MIN
-#define PW_MAX          IN_LEN_MAX
-#define ELEM_CNT_MIN    1
-#define ELEM_CNT_MAX    8
-#define WL_DIST_LEN     0
+#define IN_LEN_MIN    1
+#define IN_LEN_MAX    16
+#define PW_MIN        IN_LEN_MIN
+#define PW_MAX        IN_LEN_MAX
+#define ELEM_CNT_MIN  1
+#define ELEM_CNT_MAX  8
+#define WL_DIST_LEN   0
 
-#define VERSION_BIN     17
+#define VERSION_BIN   17
 
-#define ALLOC_NEW_WORDS 0x40000
-#define ALLOC_NEW_ELEMS 0x10
+#define ALLOC_NEW_ELEMS  0x40000
+#define ALLOC_NEW_CHAINS 0x10
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -50,30 +50,30 @@ typedef struct
 
 typedef struct
 {
-  u8  buf[IN_LEN_MAX];
-
-} word_t;
-
-typedef struct
-{
-  u8  buf[IN_LEN_MAX];
-  int cnt;
-
-  mpz_t ks_cnt;
-  mpz_t ks_pos;
+  u8    buf[IN_LEN_MAX];
 
 } elem_t;
 
 typedef struct
 {
-  word_t *words_buf;
-  u64     words_cnt;
-  u64     words_alloc;
+  u8    buf[IN_LEN_MAX];
+  int   cnt;
 
-  elem_t *elems_buf;
-  int     elems_cnt;
-  int     elems_pos;
-  int     elems_alloc;
+  mpz_t ks_cnt;
+  mpz_t ks_pos;
+
+} chain_t;
+
+typedef struct
+{
+  elem_t  *elems_buf;
+  u64      elems_cnt;
+  u64      elems_alloc;
+
+  chain_t *chains_buf;
+  int      chains_cnt;
+  int      chains_pos;
+  int      chains_alloc;
 
 } db_entry_t;
 
@@ -131,7 +131,7 @@ static const char *USAGE_MINI[] =
 
 static const char *USAGE_BIG[] =
 {
-  "pp by atom, High-Performance word generator based on element permutations",
+  "pp by atom, High-Performance word-generator",
   "",
   "Usage: %s [options] < wordlist",
   "",
@@ -210,29 +210,6 @@ static void usage_big_print (const char *progname)
   }
 }
 
-static void check_realloc_words (db_entry_t *db_entry)
-{
-  if (db_entry->words_cnt == db_entry->words_alloc)
-  {
-    const u64 words_alloc = db_entry->words_alloc;
-
-    const u64 words_alloc_new = words_alloc + ALLOC_NEW_WORDS;
-
-    db_entry->words_buf = (word_t *) realloc (db_entry->words_buf, words_alloc_new * sizeof (word_t));
-
-    if (db_entry->words_buf == NULL)
-    {
-      fprintf (stderr, "Out of memory!\n");
-
-      exit (-1);
-    }
-
-    memset (&db_entry->words_buf[words_alloc], 0, ALLOC_NEW_WORDS * sizeof (word_t));
-
-    db_entry->words_alloc = words_alloc_new;
-  }
-}
-
 static void check_realloc_elems (db_entry_t *db_entry)
 {
   if (db_entry->elems_cnt == db_entry->elems_alloc)
@@ -253,6 +230,29 @@ static void check_realloc_elems (db_entry_t *db_entry)
     memset (&db_entry->elems_buf[elems_alloc], 0, ALLOC_NEW_ELEMS * sizeof (elem_t));
 
     db_entry->elems_alloc = elems_alloc_new;
+  }
+}
+
+static void check_realloc_chains (db_entry_t *db_entry)
+{
+  if (db_entry->chains_cnt == db_entry->chains_alloc)
+  {
+    const u64 chains_alloc = db_entry->chains_alloc;
+
+    const u64 chains_alloc_new = chains_alloc + ALLOC_NEW_CHAINS;
+
+    db_entry->chains_buf = (chain_t *) realloc (db_entry->chains_buf, chains_alloc_new * sizeof (chain_t));
+
+    if (db_entry->chains_buf == NULL)
+    {
+      fprintf (stderr, "Out of memory!\n");
+
+      exit (-1);
+    }
+
+    memset (&db_entry->chains_buf[chains_alloc], 0, ALLOC_NEW_CHAINS * sizeof (chain_t));
+
+    db_entry->chains_alloc = chains_alloc_new;
   }
 }
 
@@ -317,115 +317,115 @@ static int sort_by_cnt (const void *p1, const void *p2)
 
 static int sort_by_ks (const void *p1, const void *p2)
 {
-  const elem_t *f1 = (const elem_t *) p1;
-  const elem_t *f2 = (const elem_t *) p2;
+  const chain_t *f1 = (const chain_t *) p1;
+  const chain_t *f2 = (const chain_t *) p2;
 
   return mpz_cmp (f1->ks_cnt, f2->ks_cnt);
 }
 
-static int elem_valid_with_db (const elem_t *elem_buf, const db_entry_t *db_entries)
+static int chain_valid_with_db (const chain_t *chain_buf, const db_entry_t *db_entries)
 {
-  const u8 *buf = elem_buf->buf;
-  const int cnt = elem_buf->cnt;
+  const u8 *buf = chain_buf->buf;
+  const int cnt = chain_buf->cnt;
 
   for (int idx = 0; idx < cnt; idx++)
   {
-    const u8 elem_key = buf[idx];
+    const u8 db_key = buf[idx];
 
-    const db_entry_t *db_entry = &db_entries[elem_key];
+    const db_entry_t *db_entry = &db_entries[db_key];
 
-    if (db_entry->words_cnt == 0) return 0;
+    if (db_entry->elems_cnt == 0) return 0;
   }
 
   return 1;
 }
 
-static int elem_valid_with_cnt_min (const elem_t *elem_buf, const int elem_cnt_min)
+static int chain_valid_with_cnt_min (const chain_t *chain_buf, const int elem_cnt_min)
 {
-  const int cnt = elem_buf->cnt;
+  const int cnt = chain_buf->cnt;
 
   if (cnt < elem_cnt_min) return 0;
 
   return 1;
 }
 
-static int elem_valid_with_cnt_max (const elem_t *elem_buf, const int elem_cnt_max)
+static int chain_valid_with_cnt_max (const chain_t *chain_buf, const int elem_cnt_max)
 {
-  const int cnt = elem_buf->cnt;
+  const int cnt = chain_buf->cnt;
 
   if (cnt > elem_cnt_max) return 0;
 
   return 1;
 }
 
-static void elem_ks (const elem_t *elem_buf, const db_entry_t *db_entries, mpz_t ks_cnt)
+static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t ks_cnt)
 {
-  const u8 *buf = elem_buf->buf;
-  const int cnt = elem_buf->cnt;
+  const u8 *buf = chain_buf->buf;
+  const int cnt = chain_buf->cnt;
 
   mpz_set_si (ks_cnt, 1);
 
   for (int idx = 0; idx < cnt; idx++)
   {
-    const u8 elem_key = buf[idx];
+    const u8 db_key = buf[idx];
 
-    const db_entry_t *db_entry = &db_entries[elem_key];
+    const db_entry_t *db_entry = &db_entries[db_key];
 
-    const u64 words_cnt = db_entry->words_cnt;
+    const u64 elems_cnt = db_entry->elems_cnt;
 
-    mpz_mul_ui (ks_cnt, ks_cnt, words_cnt);
+    mpz_mul_ui (ks_cnt, ks_cnt, elems_cnt);
   }
 }
 
-static void elem_set_pwbuf (const elem_t *elem_buf, const db_entry_t *db_entries, mpz_t tmp, char *pw_buf)
+static void chain_set_pwbuf (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t tmp, char *pw_buf)
 {
-  const u8 *buf = elem_buf->buf;
+  const u8 *buf = chain_buf->buf;
 
-  const u32 cnt = elem_buf->cnt;
+  const u32 cnt = chain_buf->cnt;
 
   for (u32 idx = 0; idx < cnt; idx++)
   {
-    const u8 elem_key = buf[idx];
+    const u8 db_key = buf[idx];
 
-    const db_entry_t *db_entry = &db_entries[elem_key];
+    const db_entry_t *db_entry = &db_entries[db_key];
 
-    const u64 words_cnt = db_entry->words_cnt;
+    const u64 elems_cnt = db_entry->elems_cnt;
 
-    const u64 words_idx = mpz_fdiv_ui (tmp, words_cnt);
+    const u64 elems_idx = mpz_fdiv_ui (tmp, elems_cnt);
 
-    memcpy (pw_buf, &db_entry->words_buf[words_idx], elem_key);
+    memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
 
-    pw_buf += elem_key;
+    pw_buf += db_key;
 
-    mpz_div_ui (tmp, tmp, words_cnt);
+    mpz_div_ui (tmp, tmp, elems_cnt);
   }
 }
 
-static void elem_gen_with_idx (elem_t *elem_buf, const int len1, const int elems_idx)
+static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int chains_idx)
 {
-  elem_buf->cnt = 0;
+  chain_buf->cnt = 0;
 
-  u8 elem_key = 1;
+  u8 db_key = 1;
 
-  for (int elems_shr = 0; elems_shr < len1; elems_shr++)
+  for (int chains_shr = 0; chains_shr < len1; chains_shr++)
   {
-    if ((elems_idx >> elems_shr) & 1)
+    if ((chains_idx >> chains_shr) & 1)
     {
-      elem_buf->buf[elem_buf->cnt] = elem_key;
+      chain_buf->buf[chain_buf->cnt] = db_key;
 
-      elem_buf->cnt++;
+      chain_buf->cnt++;
 
-      elem_key = 1;
+      db_key = 1;
     }
     else
     {
-      elem_key++;
+      db_key++;
     }
   }
 
-  elem_buf->buf[elem_buf->cnt] = elem_key;
+  chain_buf->buf[chain_buf->cnt] = db_key;
 
-  elem_buf->cnt++;
+  chain_buf->cnt++;
 }
 
 int main (int argc, char *argv[])
@@ -615,7 +615,7 @@ int main (int argc, char *argv[])
   }
 
   /**
-   * load words from stdin
+   * load elems from stdin
    */
 
   while (!feof (stdin))
@@ -633,17 +633,17 @@ int main (int argc, char *argv[])
 
     db_entry_t *db_entry = &db_entries[input_len];
 
-    check_realloc_words (db_entry);
+    check_realloc_elems (db_entry);
 
-    word_t *word_buf = &db_entry->words_buf[db_entry->words_cnt];
+    elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
-    memcpy (word_buf->buf, input_buf, input_len);
+    memcpy (elem_buf->buf, input_buf, input_len);
 
-    db_entry->words_cnt++;
+    db_entry->elems_cnt++;
   }
 
   /**
-   * init elems
+   * init chains
    */
 
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
@@ -652,42 +652,42 @@ int main (int argc, char *argv[])
 
     const int pw_len1 = pw_len - 1;
 
-    const int elems_cnt = 1 << pw_len1;
+    const int chains_cnt = 1 << pw_len1;
 
-    elem_t elem_buf_new;
+    chain_t chain_buf_new;
 
-    for (int elems_idx = 0; elems_idx < elems_cnt; elems_idx++)
+    for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
-      elem_gen_with_idx (&elem_buf_new, pw_len1, elems_idx);
+      chain_gen_with_idx (&chain_buf_new, pw_len1, chains_idx);
 
-      // make sure there are words of that specific length which is ued in the elemtal
+      // make sure all the elements really exist
 
-      int valid1 = elem_valid_with_db (&elem_buf_new, db_entries);
+      int valid1 = chain_valid_with_db (&chain_buf_new, db_entries);
 
       if (valid1 == 0) continue;
 
-      // boost by reject elements to be inside a specific range
+      // boost by verify element count to be inside a specific range
 
-      int valid2 = elem_valid_with_cnt_min (&elem_buf_new, elem_cnt_min);
+      int valid2 = chain_valid_with_cnt_min (&chain_buf_new, elem_cnt_min);
 
       if (valid2 == 0) continue;
 
-      int valid3 = elem_valid_with_cnt_max (&elem_buf_new, elem_cnt_max);
+      int valid3 = chain_valid_with_cnt_max (&chain_buf_new, elem_cnt_max);
 
       if (valid3 == 0) continue;
 
-      // add element to database
+      // add chain to database
 
-      check_realloc_elems (db_entry);
+      check_realloc_chains (db_entry);
 
-      elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
+      chain_t *chain_buf = &db_entry->chains_buf[db_entry->chains_cnt];
 
-      memcpy (elem_buf, &elem_buf_new, sizeof (elem_t));
+      memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
 
-      mpz_init_set_si (elem_buf->ks_cnt, 0);
-      mpz_init_set_si (elem_buf->ks_pos, 0);
+      mpz_init_set_si (chain_buf->ks_cnt, 0);
+      mpz_init_set_si (chain_buf->ks_pos, 0);
 
-      db_entry->elems_cnt++;
+      db_entry->chains_cnt++;
     }
   }
 
@@ -701,7 +701,7 @@ int main (int argc, char *argv[])
     {
       db_entry_t *db_entry = &db_entries[pw_len];
 
-      wordlen_dist[pw_len] = db_entry->words_cnt;
+      wordlen_dist[pw_len] = db_entry->elems_cnt;
     }
   }
   else
@@ -727,16 +727,16 @@ int main (int argc, char *argv[])
   {
     db_entry_t *db_entry = &db_entries[pw_len];
 
-    int     elems_cnt = db_entry->elems_cnt;
-    elem_t *elems_buf = db_entry->elems_buf;
+    int      chains_cnt = db_entry->chains_cnt;
+    chain_t *chains_buf = db_entry->chains_buf;
 
-    for (int elems_idx = 0; elems_idx < elems_cnt; elems_idx++)
+    for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
-      elem_t *elem_buf = &elems_buf[elems_idx];
+      chain_t *chain_buf = &chains_buf[chains_idx];
 
-      elem_ks (elem_buf, db_entries, elem_buf->ks_cnt);
+      chain_ks (chain_buf, db_entries, chain_buf->ks_cnt);
 
-      mpz_add (total_ks_cnt, total_ks_cnt, elem_buf->ks_cnt);
+      mpz_add (total_ks_cnt, total_ks_cnt, chain_buf->ks_cnt);
     }
   }
 
@@ -750,34 +750,34 @@ int main (int argc, char *argv[])
   }
 
   /**
-   * sort elems by ks
+   * sort chains by ks
    */
 
   for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
   {
     db_entry_t *db_entry = &db_entries[pw_len];
 
-    elem_t *elems_buf = db_entry->elems_buf;
+    chain_t *chains_buf = db_entry->chains_buf;
 
-    const int elems_cnt = db_entry->elems_cnt;
+    const int chains_cnt = db_entry->chains_cnt;
 
-    qsort (elems_buf, elems_cnt, sizeof (elem_t), sort_by_ks);
+    qsort (chains_buf, chains_cnt, sizeof (chain_t), sort_by_ks);
   }
 
   /**
-   * sort global order by pw length counts
+   * sort global order by password length counts
    */
 
   for (int pw_len = pw_min, order_pos = 0; pw_len <= pw_max; pw_len++, order_pos++)
   {
     db_entry_t *db_entry = &db_entries[pw_len];
 
-    const u64 words_cnt = db_entry->words_cnt;
+    const u64 elems_cnt = db_entry->elems_cnt;
 
     pw_order_t *pw_order = &pw_orders[order_pos];
 
     pw_order->len = pw_len;
-    pw_order->cnt = words_cnt;
+    pw_order->cnt = elems_cnt;
   }
 
   const int order_cnt = pw_max + 1 - pw_min;
@@ -837,22 +837,22 @@ int main (int argc, char *argv[])
 
       db_entry_t *db_entry = &db_entries[pw_len];
 
-      const u64 words_cnt = wordlen_dist[pw_len];
+      const u64 elems_cnt = wordlen_dist[pw_len];
 
-      for (u64 words_pos = 0; words_pos < words_cnt; words_pos++)
+      for (u64 elems_pos = 0; elems_pos < elems_cnt; elems_pos++)
       {
-        const int elems_cnt = db_entry->elems_cnt;
-        const int elems_pos = db_entry->elems_pos;
+        const int chains_cnt = db_entry->chains_cnt;
+        const int chains_pos = db_entry->chains_pos;
 
-        if (elems_pos == elems_cnt) break;
+        if (chains_pos == chains_cnt) break;
 
-        elem_t *elems_buf = db_entry->elems_buf;
+        chain_t *chains_buf = db_entry->chains_buf;
 
-        elem_t *elem_buf = &elems_buf[elems_pos];
+        chain_t *chain_buf = &chains_buf[chains_pos];
 
         mpz_sub (total_ks_left, total_ks_cnt, total_ks_pos);
 
-        mpz_sub (iter_max, elem_buf->ks_cnt, elem_buf->ks_pos);
+        mpz_sub (iter_max, chain_buf->ks_cnt, chain_buf->ks_pos);
 
         if (mpz_cmp (total_ks_left, iter_max) < 0)
         {
@@ -876,9 +876,9 @@ int main (int argc, char *argv[])
 
           while (iter_pos_u64 < iter_max_u64)
           {
-            mpz_add_ui (tmp, elem_buf->ks_pos, iter_pos_u64);
+            mpz_add_ui (tmp, chain_buf->ks_pos, iter_pos_u64);
 
-            elem_set_pwbuf (elem_buf, db_entries, tmp, pw_buf);
+            chain_set_pwbuf (chain_buf, db_entries, tmp, pw_buf);
 
             out_push (out, pw_buf, pw_len + 1);
 
@@ -888,11 +888,11 @@ int main (int argc, char *argv[])
 
         mpz_add (total_ks_pos, total_ks_pos, iter_max);
 
-        mpz_add (elem_buf->ks_pos, elem_buf->ks_pos, iter_max);
+        mpz_add (chain_buf->ks_pos, chain_buf->ks_pos, iter_max);
 
-        if (mpz_cmp (elem_buf->ks_pos, elem_buf->ks_cnt) == 0)
+        if (mpz_cmp (chain_buf->ks_pos, chain_buf->ks_cnt) == 0)
         {
-          db_entry->elems_pos++;
+          db_entry->chains_pos++;
         }
 
         if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
@@ -920,8 +920,8 @@ int main (int argc, char *argv[])
   {
     db_entry_t *db_entry = &db_entries[pw_len];
 
-    if (db_entry->elems_buf) free (db_entry->elems_buf);
-    if (db_entry->words_buf) free (db_entry->words_buf);
+    if (db_entry->chains_buf) free (db_entry->chains_buf);
+    if (db_entry->elems_buf)  free (db_entry->elems_buf);
   }
 
   free (out);
