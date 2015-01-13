@@ -1,3 +1,7 @@
+* v0.17 -> v0.18:
+
+- Fixed major bug where all candidates are of the same length till chain changes
+
 * v0.16 -> v0.17:
 
 - Fixed download url for binaries in README

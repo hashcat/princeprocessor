@@ -837,9 +837,11 @@ int main (int argc, char *argv[])
 
       db_entry_t *db_entry = &db_entries[pw_len];
 
-      const u64 elems_cnt = wordlen_dist[pw_len];
+      const u64 outs_cnt = wordlen_dist[pw_len];
 
-      for (u64 elems_pos = 0; elems_pos < elems_cnt; elems_pos++)
+      u64 outs_pos = 0;
+
+      while (outs_pos < outs_cnt)
       {
         const int chains_cnt = db_entry->chains_cnt;
         const int chains_pos = db_entry->chains_pos;
@@ -857,6 +859,15 @@ int main (int argc, char *argv[])
         if (mpz_cmp (total_ks_left, iter_max) < 0)
         {
           mpz_set (iter_max, total_ks_left);
+        }
+
+        const u64 outs_left = outs_cnt - outs_pos;
+
+        mpz_set_ui (tmp, outs_left);
+
+        if (mpz_cmp (tmp, iter_max) < 0)
+        {
+          mpz_set (iter_max, tmp);
         }
 
         const u64 iter_max_u64 = mpz_get_ui (iter_max);
@@ -885,6 +896,8 @@ int main (int argc, char *argv[])
             iter_pos_u64++;
           }
         }
+
+        outs_pos += iter_max_u64;
 
         mpz_add (total_ks_pos, total_ks_pos, iter_max);
 
