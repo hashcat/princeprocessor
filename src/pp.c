@@ -28,7 +28,7 @@
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
 
-#define VERSION_BIN   17
+#define VERSION_BIN   19
 
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
