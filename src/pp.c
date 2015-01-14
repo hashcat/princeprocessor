@@ -15,7 +15,7 @@
 /**
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
- * Version.....: 0.17
+ * Version.....: 0.19
  * Autor.......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
@@ -577,6 +577,13 @@ int main (int argc, char *argv[])
     return (-1);
   }
 
+  if (elem_cnt_max > pw_max)
+  {
+    fprintf (stderr, "Value of --elem-cnt-max (%d) must be smaller or equal than value of --pw-max (%d)\n", elem_cnt_max, pw_max);
+
+    return (-1);
+  }
+
   /**
    * OS specific settings
    */
@@ -943,12 +950,12 @@ int main (int argc, char *argv[])
         chain_t *chain_buf = &chains_buf[chains_idx];
 
         mpz_clear (chain_buf->ks_cnt);
-
         mpz_clear (chain_buf->ks_pos);
       }
 
       free (db_entry->chains_buf);
     }
+
     if (db_entry->elems_buf)  free (db_entry->elems_buf);
   }
 

@@ -1,3 +1,9 @@
+* v0.18 -> v0.19:
+
+- Fixed missing free() in shutdown section
+- Fixed wrong version number in source
+- Added validation check pw-max > elem-cnt-max
+
 * v0.17 -> v0.18:
 
 - Fixed major bug where all candidates are of the same length till chain changes
