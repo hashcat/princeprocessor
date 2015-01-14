@@ -430,7 +430,9 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
 
 int main (int argc, char *argv[])
 {
+  mpz_t pw_ks_pos[PW_MAX + 1];
   mpz_t pw_ks_cnt[PW_MAX + 1];
+
   mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
   mpz_t total_ks_pos;     mpz_init_set_si (total_ks_pos,    0);
@@ -838,10 +840,10 @@ int main (int argc, char *argv[])
 
   if (mpz_cmp_si (skip, 0))
   {
-    mpz_t pw_ks_pos[PW_MAX + 1];
-    mpz_t skip_left;              mpz_init_set (skip_left, skip);
-    mpz_t main_loops;             mpz_init (main_loops);
-    u64   outs_per_main_loop = 0;
+    mpz_t skip_left;  mpz_init_set (skip_left, skip);
+    mpz_t main_loops; mpz_init (main_loops);
+
+    u64 outs_per_main_loop = 0;
 
     for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
     {
@@ -905,8 +907,8 @@ int main (int argc, char *argv[])
     {
       db_entry_t *db_entry = &db_entries[pw_len];
 
-      const int  chains_cnt = db_entry->chains_cnt;
-      chain_t   *chains_buf = db_entry->chains_buf;
+      int      chains_cnt = db_entry->chains_cnt;
+      chain_t *chains_buf = db_entry->chains_buf;
 
       mpz_set (tmp, pw_ks_pos[pw_len]);
 
@@ -936,6 +938,7 @@ int main (int argc, char *argv[])
       mpz_clear (pw_ks_cnt[pw_len]);
       mpz_clear (pw_ks_pos[pw_len]);
     }
+
     mpz_clear (skip_left);
     mpz_clear (main_loops);
   }
