@@ -933,7 +933,22 @@ int main (int argc, char *argv[])
   {
     db_entry_t *db_entry = &db_entries[pw_len];
 
-    if (db_entry->chains_buf) free (db_entry->chains_buf);
+    if (db_entry->chains_buf)
+    {
+      int      chains_cnt = db_entry->chains_cnt;
+      chain_t *chains_buf = db_entry->chains_buf;
+
+      for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
+      {
+        chain_t *chain_buf = &chains_buf[chains_idx];
+
+        mpz_clear (chain_buf->ks_cnt);
+
+        mpz_clear (chain_buf->ks_pos);
+      }
+
+      free (db_entry->chains_buf);
+    }
     if (db_entry->elems_buf)  free (db_entry->elems_buf);
   }
 
