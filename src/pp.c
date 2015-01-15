@@ -75,6 +75,11 @@ typedef struct
   int      chains_pos;
   int      chains_alloc;
 
+  int      cur_chain_elems_len[ELEM_CNT_MAX];
+  elem_t  *cur_chain_elems_start[ELEM_CNT_MAX];
+  elem_t  *cur_chain_elems_end[ELEM_CNT_MAX];
+  elem_t  *cur_chain_elems_pos[ELEM_CNT_MAX];
+
 } db_entry_t;
 
 typedef struct
@@ -377,25 +382,29 @@ static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mp
   }
 }
 
-static void chain_set_pwbuf (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t tmp, char *pw_buf)
+static void set_db_entry_chain_poses (const chain_t *chain_buf, db_entry_t *db_entries, mpz_t tmp, db_entry_t *db_entry)
 {
   const u8 *buf = chain_buf->buf;
 
-  const u32 cnt = chain_buf->cnt;
+  const int cnt = chain_buf->cnt;
 
-  for (u32 idx = 0; idx < cnt; idx++)
+  for (int idx = 0; idx < cnt; idx++)
   {
     const u8 db_key = buf[idx];
 
-    const db_entry_t *db_entry = &db_entries[db_key];
+    db_entry_t *db_entry_tmp = &db_entries[db_key];
 
-    const u64 elems_cnt = db_entry->elems_cnt;
+    const u64 elems_cnt = db_entry_tmp->elems_cnt;
 
     const u64 elems_idx = mpz_fdiv_ui (tmp, elems_cnt);
 
-    memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
+    db_entry->cur_chain_elems_len[idx] = db_key;
 
-    pw_buf += db_key;
+    db_entry->cur_chain_elems_start[idx] = &db_entry_tmp->elems_buf[0];
+
+    db_entry->cur_chain_elems_end[idx] = &db_entry_tmp->elems_buf[elems_cnt];
+
+    db_entry->cur_chain_elems_pos[idx] = &db_entry_tmp->elems_buf[elems_idx];
 
     mpz_div_ui (tmp, tmp, elems_cnt);
   }
@@ -838,7 +847,29 @@ int main (int argc, char *argv[])
     mpz_set (total_ks_cnt, tmp);
   }
 
-  if (mpz_cmp_si (skip, 0))
+  /**
+   * skip to the first main loop that will output a password
+   */
+
+  if (mpz_cmp_si (skip, 0) == 0)
+  {
+    // init db entries' chain posistions when skip is 0
+
+    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    {
+      db_entry_t *db_entry = &db_entries[pw_len];
+
+      if (db_entry->chains_cnt > 0)
+      {
+        chain_t *chain_buf = &db_entry->chains_buf[0];
+
+        mpz_set_si (tmp, 0);
+
+        set_db_entry_chain_poses (chain_buf, db_entries, tmp, db_entry);
+      }
+    }
+  }
+  else
   {
     mpz_t skip_left;  mpz_init_set (skip_left, skip);
     mpz_t main_loops; mpz_init (main_loops);
@@ -852,9 +883,7 @@ int main (int argc, char *argv[])
       outs_per_main_loop += wordlen_dist[pw_len];
     }
 
-    /**
-     * find pw_ks_pos[]
-     */
+    // find pw_ks_pos[]
 
     while (1)
     {
@@ -899,9 +928,7 @@ int main (int argc, char *argv[])
 
     mpz_sub (total_ks_pos, skip, skip_left);
 
-    /**
-     * set db_entries to pw_ks_pos[]
-     */
+    // set db_entries to pw_ks_pos[]
 
     for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
     {
@@ -920,6 +947,8 @@ int main (int argc, char *argv[])
         {
           mpz_set (chain_buf->ks_pos, tmp);
 
+          set_db_entry_chain_poses (chain_buf, db_entries, tmp, db_entry);
+
           break;
         }
 
@@ -929,9 +958,7 @@ int main (int argc, char *argv[])
       }
     }
 
-    /**
-     * clean up
-     */
+    // clean up
 
     for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
     {
@@ -1007,18 +1034,71 @@ int main (int argc, char *argv[])
             mpz_sub (tmp, skip, total_ks_pos);
 
             iter_pos_u64 = mpz_get_ui (tmp);
+
+            mpz_add (tmp, chain_buf->ks_pos, tmp);
+
+            set_db_entry_chain_poses (chain_buf, db_entries, tmp, db_entry);
+          }
+
+          int     *cur_chain_elems_len   = db_entry->cur_chain_elems_len;
+          elem_t **cur_chain_elems_start = db_entry->cur_chain_elems_start;
+          elem_t **cur_chain_elems_end   = db_entry->cur_chain_elems_end;
+          elem_t **cur_chain_elems_pos   = db_entry->cur_chain_elems_pos;
+
+          const int cnt = chain_buf->cnt;
+
+          char *pw_buf_tmp = pw_buf;
+
+          // init pw_buf
+
+          for (int idx = 0; idx < cnt; idx++)
+          {
+            int elem_len = cur_chain_elems_len[idx];
+
+            memcpy (pw_buf_tmp, cur_chain_elems_pos[idx], elem_len);
+
+            pw_buf_tmp += elem_len;
           }
 
           while (iter_pos_u64 < iter_max_u64)
           {
-            mpz_add_ui (tmp, chain_buf->ks_pos, iter_pos_u64);
-
-            chain_set_pwbuf (chain_buf, db_entries, tmp, pw_buf);
 
             out_push (out, pw_buf, pw_len + 1);
 
+            // next pw_buf
+
+            pw_buf_tmp = pw_buf;
+
+            for (int idx = 0; idx < cnt; idx++)
+            {
+              const int elem_len = cur_chain_elems_len[idx];
+
+              elem_t *elem = ++cur_chain_elems_pos[idx];
+
+              if (elem < cur_chain_elems_end[idx])
+              {
+                memcpy (pw_buf_tmp, elem, elem_len);
+
+                break;
+              }
+
+              elem = cur_chain_elems_start[idx];
+
+              cur_chain_elems_pos[idx] = elem;
+
+              memcpy (pw_buf_tmp, elem, elem_len);
+
+              pw_buf_tmp += elem_len;
+            }
+
             iter_pos_u64++;
           }
+        }
+        else
+        {
+          mpz_add (tmp, chain_buf->ks_pos, iter_max);
+
+          set_db_entry_chain_poses (chain_buf, db_entries, tmp, db_entry);
         }
 
         outs_pos += iter_max_u64;
@@ -1030,6 +1110,15 @@ int main (int argc, char *argv[])
         if (mpz_cmp (chain_buf->ks_pos, chain_buf->ks_cnt) == 0)
         {
           db_entry->chains_pos++;
+
+          if (db_entry->chains_pos < db_entry->chains_cnt)
+          {
+            chain_buf = &db_entry->chains_buf[db_entry->chains_pos];
+
+            mpz_set_si (tmp, 0);
+
+            set_db_entry_chain_poses (chain_buf, db_entries, tmp, db_entry);
+          }
         }
 
         if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
