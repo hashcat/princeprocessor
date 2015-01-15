@@ -544,8 +544,8 @@ int main (int argc, char *argv[])
       case IDX_ELEM_CNT_MIN:  elem_cnt_min    = atoi (optarg);  break;
       case IDX_ELEM_CNT_MAX:  elem_cnt_max    = atoi (optarg);  break;
       case IDX_WL_DIST_LEN:   wl_dist_len     = 1;              break;
-      case IDX_SKIP:          mpz_set_str (skip,  optarg, 10);  break;
-      case IDX_LIMIT:         mpz_set_str (limit, optarg, 10);  break;
+      case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);   break;
+      case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);   break;
       case IDX_OUTPUT_FILE:   output_file     = optarg;         break;
 
       default: return (-1);
