@@ -2,7 +2,12 @@
 
 - Fixed missing free() in shutdown section
 - Fixed wrong version number in source
+- Fixed discrepancies with logic and error messages
 - Added validation check pw-max > elem-cnt-max
+- Untie IN_LEN_* from PW_* to allow --pw-max > 16 without recompilation
+- If out of memory, tell how much we tried to allocate
+- Allow hex input for --skip and --limit
+- Optimized output performance
 
 * v0.17 -> v0.18:
 
