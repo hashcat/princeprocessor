@@ -224,7 +224,8 @@ static void check_realloc_elems (db_entry_t *db_entry)
 
     if (db_entry->elems_buf == NULL)
     {
-      fprintf (stderr, "Out of memory!\n");
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n",
+               (size_t)elems_alloc_new * sizeof (elem_t));
 
       exit (-1);
     }
@@ -247,7 +248,8 @@ static void check_realloc_chains (db_entry_t *db_entry)
 
     if (db_entry->chains_buf == NULL)
     {
-      fprintf (stderr, "Out of memory!\n");
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n",
+               (size_t)chains_alloc_new * sizeof (chain_t));
 
       exit (-1);
     }
