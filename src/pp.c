@@ -862,7 +862,7 @@ int main (int argc, char *argv[])
 
   if (mpz_cmp_si (skip, 0))
   {
-    if (mpz_cmp (skip, total_ks_cnt) > 0)
+    if (mpz_cmp (skip, total_ks_cnt) >= 0)
     {
       fprintf (stderr, "Value of --skip must be smaller than total keyspace\n");
 
@@ -874,7 +874,7 @@ int main (int argc, char *argv[])
   {
     if (mpz_cmp (limit, total_ks_cnt) > 0)
     {
-      fprintf (stderr, "Value of --limit must be smaller than total keyspace\n");
+      fprintf (stderr, "Value of --limit cannot be larger than total keyspace\n");
 
       return (-1);
     }
@@ -883,7 +883,7 @@ int main (int argc, char *argv[])
 
     if (mpz_cmp (tmp, total_ks_cnt) > 0)
     {
-      fprintf (stderr, "Value of --skip + --limit must be smaller than total keyspace\n");
+      fprintf (stderr, "Value of --skip + --limit cannot be larger than total keyspace\n");
 
       return (-1);
     }
