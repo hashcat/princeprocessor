@@ -433,7 +433,9 @@ static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_
 
     const u64 elems_cnt = db_entry->elems_cnt;
 
-    const u64 elems_idx = ++cur_chain_ks_poses[idx];
+    cur_chain_ks_poses[idx]++;
+
+    const u64 elems_idx = cur_chain_ks_poses[idx];
 
     if (elems_idx < elems_cnt)
     {
@@ -1064,15 +1066,13 @@ int main (int argc, char *argv[])
             set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
           }
 
-          u64 *cur_chain_ks_poses = db_entry->cur_chain_ks_poses;
-
-          chain_set_pwbuf_init (chain_buf, db_entries, cur_chain_ks_poses, pw_buf);
+          chain_set_pwbuf_init (chain_buf, db_entries, db_entry->cur_chain_ks_poses, pw_buf);
 
           while (iter_pos_u64 < iter_max_u64)
           {
             out_push (out, pw_buf, pw_len + 1);
 
-            chain_set_pwbuf_increment (chain_buf, db_entries, cur_chain_ks_poses, pw_buf);
+            chain_set_pwbuf_increment (chain_buf, db_entries, db_entry->cur_chain_ks_poses, pw_buf);
 
             iter_pos_u64++;
           }
@@ -1093,8 +1093,6 @@ int main (int argc, char *argv[])
         if (mpz_cmp (chain_buf->ks_pos, chain_buf->ks_cnt) == 0)
         {
           db_entry->chains_pos++;
-
-          // db_entry->cur_chain_ks_poses[] should of cycled to all zeros, but just in case?
 
           memset (db_entry->cur_chain_ks_poses, 0, ELEM_CNT_MAX * sizeof (u64));
         }
