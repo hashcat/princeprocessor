@@ -44,11 +44,17 @@ pp32.bin: pp.c
 pp64.bin: pp.c
 	$(CC_LINUX64)   $(CFLAGS_LINUX64)   -o $@ $^ -I$(LIBGMP_LINUX64)/include -L$(LIBGMP_LINUX64)/lib -lgmp
 
+pp128.bin: pp.c mpz_int128.h
+	$(CC_LINUX64)   $(CFLAGS_LINUX64)   -o $@ $^ -DHAVE_INT128
+
 pp32.exe: pp.c
 	$(CC_WINDOWS32) $(CFLAGS_WINDOWS32) -o $@ $^ -I$(LIBGMP_WIN32)/include   -L$(LIBGMP_WIN32)/lib   -lgmp
 
 pp64.exe: pp.c
 	$(CC_WINDOWS64) $(CFLAGS_WINDOWS64) -o $@ $^ -I$(LIBGMP_WIN64)/include   -L$(LIBGMP_WIN64)/lib   -lgmp
+
+pp128.exe: pp.c mpz_int128.h
+	$(CC_WINDOWS64) $(CFLAGS_WINDOWS64) -o $@ $^ -DHAVE_INT128
 
 pp32.app: pp.c
 	$(CC_OSX32)     $(CFLAGS_OSX32)     -o $@ $^ -I$(LIBGMP_OSX32)/include   -L$(LIBGMP_OSX32)/lib   -lgmp
@@ -56,3 +62,5 @@ pp32.app: pp.c
 pp64.app: pp.c
 	$(CC_OSX64)     $(CFLAGS_OSX64)     -o $@ $^ -I$(LIBGMP_OSX64)/include   -L$(LIBGMP_OSX64)/lib   -lgmp
 
+pp128.app: pp.c mpz_int128.h
+	$(CC_OSX64)     $(CFLAGS_OSX64)     -o $@ $^ -DHAVE_INT128
