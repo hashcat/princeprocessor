@@ -11,17 +11,7 @@
 #include <errno.h>
 #include <getopt.h>
 
-#if HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
 #include "mpz_int128.h"
-#define REALGMP "int128"
-#else
-#define REALGMP "GMP"
-#if HAVE_GMP_GMP_H
-#include <gmp/gmp.h>
-#else
-#include <gmp.h>
-#endif
-#endif
 
 /**
  * Name........: princeprocessor (pp)
@@ -144,8 +134,6 @@ static const char *USAGE_MINI[] =
 
 static const char *USAGE_BIG[] =
 {
-  "pp by atom, High-Performance word-generator (" REALGMP " build)",
-  "",
   "Usage: %s [options] < wordlist",
   "",
   "* Startup:",
@@ -822,10 +810,11 @@ int main (int argc, char *argv[])
       mpz_init_set (pw_ks_cnt[pw_len], tmp);
     }
   }
-#if FAKE_GMP > 0
+
   if (total_ks_cnt == UINT128_MAX)
-    fprintf(stderr, "Warning: %d-bit keyspace saturated\n", FAKE_GMP);
-#endif
+  {
+    fprintf (stderr, "Warning: %d-bit keyspace saturated\n", FAKE_GMP);
+  }
 
   if (keyspace)
   {

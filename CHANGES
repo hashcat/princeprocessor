@@ -1,5 +1,9 @@
 * v0.19 -> v0.20:
 
+- Add a fake-GMP header using uint128_t macros. This is to replace depency on GMP
+- Fixed buffer overflow
+- Fixed accidental reverted changes
+
 * v0.18 -> v0.19:
 
 - Fixed missing free() in shutdown section

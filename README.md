@@ -30,9 +30,7 @@ I'm going to write a detailed description in case I'm extremely bored. Till that
 Compile
 --------------
 
-If you want to compile from source make sure you have GMP libraries and headers installed. 
-
-- On Ubuntu: `apt-get install libgmp-dev`
+Simply run make
 
 Binary distribution
 --------------
