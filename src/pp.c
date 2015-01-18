@@ -10,7 +10,18 @@
 #include <time.h>
 #include <errno.h>
 #include <getopt.h>
+
+#if HAVE_INT128 || HAVE___INT128 || HAVE___UINT128_T
+#include "mpz_int128.h"
+#define REALGMP "int128"
+#else
+#define REALGMP "GMP"
+#if HAVE_GMP_GMP_H
+#include <gmp/gmp.h>
+#else
 #include <gmp.h>
+#endif
+#endif
 
 /**
  * Name........: princeprocessor (pp)
@@ -133,7 +144,7 @@ static const char *USAGE_MINI[] =
 
 static const char *USAGE_BIG[] =
 {
-  "pp by atom, High-Performance word-generator",
+  "pp by atom, High-Performance word-generator (" REALGMP " build)",
   "",
   "Usage: %s [options] < wordlist",
   "",
@@ -360,12 +371,12 @@ static int chain_valid_with_cnt_max (const chain_t *chain_buf, const int elem_cn
   return 1;
 }
 
-static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t ks_cnt)
+static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t *ks_cnt)
 {
   const u8 *buf = chain_buf->buf;
   const int cnt = chain_buf->cnt;
 
-  mpz_set_si (ks_cnt, 1);
+  mpz_set_si (*ks_cnt, 1);
 
   for (int idx = 0; idx < cnt; idx++)
   {
@@ -375,11 +386,11 @@ static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mp
 
     const u64 elems_cnt = db_entry->elems_cnt;
 
-    mpz_mul_ui (ks_cnt, ks_cnt, elems_cnt);
+    mpz_mul_ui (*ks_cnt, *ks_cnt, elems_cnt);
   }
 }
 
-static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t tmp, u64 cur_chain_ks_poses[ELEM_CNT_MAX])
+static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t *tmp, u64 cur_chain_ks_poses[ELEM_CNT_MAX])
 {
   const u8 *buf = chain_buf->buf;
 
@@ -393,9 +404,9 @@ static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_e
 
     const u64 elems_cnt = db_entry->elems_cnt;
 
-    cur_chain_ks_poses[idx] = mpz_fdiv_ui (tmp, elems_cnt);
+    cur_chain_ks_poses[idx] = mpz_fdiv_ui (*tmp, elems_cnt);
 
-    mpz_div_ui (tmp, tmp, elems_cnt);
+    mpz_div_ui (*tmp, *tmp, elems_cnt);
   }
 }
 
@@ -799,7 +810,7 @@ int main (int argc, char *argv[])
     {
       chain_t *chain_buf = &chains_buf[chains_idx];
 
-      chain_ks (chain_buf, db_entries, chain_buf->ks_cnt);
+      chain_ks (chain_buf, db_entries, &chain_buf->ks_cnt);
 
       mpz_add (tmp, tmp, chain_buf->ks_cnt);
     }
@@ -811,6 +822,10 @@ int main (int argc, char *argv[])
       mpz_init_set (pw_ks_cnt[pw_len], tmp);
     }
   }
+#if FAKE_GMP > 0
+  if (total_ks_cnt == UINT128_MAX)
+    fprintf(stderr, "Warning: %d-bit keyspace saturated\n", FAKE_GMP);
+#endif
 
   if (keyspace)
   {
@@ -973,7 +988,7 @@ int main (int argc, char *argv[])
         {
           mpz_set (chain_buf->ks_pos, tmp);
 
-          set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
+          set_chain_ks_poses (chain_buf, db_entries, &tmp, db_entry->cur_chain_ks_poses);
 
           break;
         }
@@ -1063,7 +1078,7 @@ int main (int argc, char *argv[])
 
             mpz_add (tmp, chain_buf->ks_pos, tmp);
 
-            set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
+            set_chain_ks_poses (chain_buf, db_entries, &tmp, db_entry->cur_chain_ks_poses);
           }
 
           chain_set_pwbuf_init (chain_buf, db_entries, db_entry->cur_chain_ks_poses, pw_buf);
@@ -1081,7 +1096,7 @@ int main (int argc, char *argv[])
         {
           mpz_add (tmp, chain_buf->ks_pos, iter_max);
 
-          set_chain_ks_poses (chain_buf, db_entries, tmp, db_entry->cur_chain_ks_poses);
+          set_chain_ks_poses (chain_buf, db_entries, &tmp, db_entry->cur_chain_ks_poses);
         }
 
         outs_pos += iter_max_u64;
