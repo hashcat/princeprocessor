@@ -481,8 +481,8 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
 
 int main (int argc, char *argv[])
 {
-  mpz_t pw_ks_pos[PW_MAX + 1];
-  mpz_t pw_ks_cnt[PW_MAX + 1];
+  mpz_t pw_ks_pos[IN_LEN_MAX + 1];
+  mpz_t pw_ks_cnt[IN_LEN_MAX + 1];
 
   mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
