@@ -10,6 +10,7 @@
 #include <time.h>
 #include <errno.h>
 #include <getopt.h>
+#include <ctype.h>
 
 #include "mpz_int128.h"
 
@@ -28,6 +29,7 @@
 #define ELEM_CNT_MIN  1
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
+#define CASE_PERMUTE  0
 
 #define VERSION_BIN   20
 
@@ -161,6 +163,11 @@ static const char *USAGE_BIG[] =
   "* Files:",
   "",
   "  -o,  --output-file=FILE    Output-file",
+  "",
+  "* Amplifier:",
+  "",
+  "       --case-permute        For each word in the wordlist that begins with a letter",
+  "                             generate a word with the opposite case of the first letter",
   "",
   NULL
 };
@@ -499,6 +506,7 @@ int main (int argc, char *argv[])
   int     elem_cnt_min  = ELEM_CNT_MIN;
   int     elem_cnt_max  = ELEM_CNT_MAX;
   int     wl_dist_len   = WL_DIST_LEN;
+  int     case_permute  = CASE_PERMUTE;
   char   *output_file   = NULL;
 
   #define IDX_VERSION       'V'
@@ -509,6 +517,7 @@ int main (int argc, char *argv[])
   #define IDX_ELEM_CNT_MAX  0x4000
   #define IDX_KEYSPACE      0x5000
   #define IDX_WL_DIST_LEN   0x6000
+  #define IDX_CASE_PERMUTE  0x7000
   #define IDX_SKIP          's'
   #define IDX_LIMIT         'l'
   #define IDX_OUTPUT_FILE   'o'
@@ -523,6 +532,7 @@ int main (int argc, char *argv[])
     {"elem-cnt-min",  required_argument, 0, IDX_ELEM_CNT_MIN},
     {"elem-cnt-max",  required_argument, 0, IDX_ELEM_CNT_MAX},
     {"wl-dist-len",   no_argument,       0, IDX_WL_DIST_LEN},
+    {"case-permute",  no_argument,       0, IDX_CASE_PERMUTE},
     {"skip",          required_argument, 0, IDX_SKIP},
     {"limit",         required_argument, 0, IDX_LIMIT},
     {"output-file",   required_argument, 0, IDX_OUTPUT_FILE},
@@ -545,6 +555,7 @@ int main (int argc, char *argv[])
       case IDX_ELEM_CNT_MIN:  elem_cnt_min    = atoi (optarg);  break;
       case IDX_ELEM_CNT_MAX:  elem_cnt_max    = atoi (optarg);  break;
       case IDX_WL_DIST_LEN:   wl_dist_len     = 1;              break;
+      case IDX_CASE_PERMUTE:  case_permute    = 1;              break;
       case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);   break;
       case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);   break;
       case IDX_OUTPUT_FILE:   output_file     = optarg;         break;
@@ -700,6 +711,36 @@ int main (int argc, char *argv[])
     memcpy (elem_buf->buf, input_buf, input_len);
 
     db_entry->elems_cnt++;
+
+    if (case_permute)
+    {
+      check_realloc_elems (db_entry);
+
+      elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
+
+      const char old_c = input_buf[0];
+
+      const char new_cu = toupper (old_c);
+      const char new_cl = tolower (old_c);
+
+      if (old_c != new_cu)
+      {
+        input_buf[0] = new_cu;
+
+        memcpy (elem_buf->buf, input_buf, input_len);
+
+        db_entry->elems_cnt++;
+      }
+
+      if (old_c != new_cl)
+      {
+        input_buf[0] = new_cl;
+
+        memcpy (elem_buf->buf, input_buf, input_len);
+
+        db_entry->elems_cnt++;
+      }
+    }
   }
 
   /**
