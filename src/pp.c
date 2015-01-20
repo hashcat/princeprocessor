@@ -24,6 +24,7 @@
 
 #define IN_LEN_MIN    1
 #define IN_LEN_MAX    32
+#define OUT_LEN_MAX   125
 #define PW_MIN        1
 #define PW_MAX        16
 #define ELEM_CNT_MIN  1
@@ -695,9 +696,9 @@ int main (int argc, char *argv[])
     return (-1);
   }
 
-  if (pw_max > IN_LEN_MAX)
+  if (pw_max > OUT_LEN_MAX)
   {
-    fprintf (stderr, "Value of --pw-max (%d) must be smaller or equal than %d\n", pw_max, IN_LEN_MAX);
+    fprintf (stderr, "Value of --pw-max (%d) must be smaller or equal than %d\n", pw_max, OUT_LEN_MAX);
 
     return (-1);
   }
@@ -721,9 +722,9 @@ int main (int argc, char *argv[])
    * alloc some space
    */
 
-  db_entry_t *db_entries   = (db_entry_t *) calloc (IN_LEN_MAX + 1, sizeof (db_entry_t));
-  pw_order_t *pw_orders    = (pw_order_t *) calloc (IN_LEN_MAX + 1, sizeof (pw_order_t));
-  u64        *wordlen_dist = (u64 *)        calloc (IN_LEN_MAX + 1, sizeof (u64));
+  db_entry_t *db_entries   = (db_entry_t *) calloc (pw_max + 1, sizeof (db_entry_t));
+  pw_order_t *pw_orders    = (pw_order_t *) calloc (pw_max + 1, sizeof (pw_order_t));
+  u64        *wordlen_dist = (u64 *)        calloc (pw_max + 1, sizeof (u64));
 
   out_t *out = (out_t *) malloc (sizeof (out_t));
 
@@ -819,7 +820,7 @@ int main (int argc, char *argv[])
     const int chains_cnt = 1 << pw_len1;
 
     chain_t chain_buf_new;
-    u8 buf[IN_LEN_MAX];
+    u8 buf[pw_len];
     chain_buf_new.buf = buf;
 
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
@@ -869,16 +870,23 @@ int main (int argc, char *argv[])
 
   if (wl_dist_len)
   {
-    for (int pw_len = IN_LEN_MIN; pw_len <= IN_LEN_MAX; pw_len++)
+    for (int pw_len = IN_LEN_MIN; pw_len <= pw_max; pw_len++)
     {
-      db_entry_t *db_entry = &db_entries[pw_len];
+      if (pw_len <= IN_LEN_MAX)
+      {
+        db_entry_t *db_entry = &db_entries[pw_len];
 
-      wordlen_dist[pw_len] = db_entry->elems_cnt;
+        wordlen_dist[pw_len] = db_entry->elems_cnt;
+      }
+      else
+      {
+        wordlen_dist[pw_len] = 1;
+      }
     }
   }
   else
   {
-    for (int pw_len = IN_LEN_MIN; pw_len <= IN_LEN_MAX; pw_len++)
+    for (int pw_len = IN_LEN_MIN; pw_len <= pw_max; pw_len++)
     {
       if (pw_len < DEF_WORDLEN_DIST_CNT)
       {
