@@ -172,62 +172,54 @@ static const char *USAGE_BIG[] =
   NULL
 };
 
-#define MEM_ALLOC_SIZE			0x10000
-#define MEM_ALLOC_MAX_WASTE		0xff
-
-static void *mem_alloc(size_t size)
+static void *mem_alloc (const size_t size)
 {
-  void *res;
+  void *res = malloc (size);
 
-  if (!size) return NULL;
+  if (res == NULL)
+  {
+    fprintf (stderr, "malloc: %s\n", strerror (ENOMEM));
 
-  if (!(res = malloc(size))) {
-    fprintf(stderr, "malloc: %s\n", strerror(ENOMEM));
-    exit(-1);
+    exit (-1);
   }
 
   return res;
 }
 
-static void *mem_alloc_tiny(size_t size, size_t align)
+static void *mem_alloc_tiny (const size_t size)
 {
-  static char *buffer = NULL;
+  #define MEM_ALLOC_SIZE 0x10000
+
+  if (size > MEM_ALLOC_SIZE)
+  {
+    // we can't handle it here
+
+    return mem_alloc (size);
+  }
+
+  static char *buffer  = NULL;
   static size_t bufree = 0;
-  size_t mask;
-  char *p;
 
-  mask = align - 1;
-
-  do {
-    if (buffer) {
-      size_t need = size + mask - (((size_t)buffer + mask) & mask);
-      if (bufree >= need) {
-        p = buffer;
-        p += mask;
-        p -= (size_t)p & mask;
-        bufree -= need;
-        buffer = p + size;
-        return p;
-      }
-    }
-
-    if (size + mask > MEM_ALLOC_SIZE || bufree > MEM_ALLOC_MAX_WASTE)
-      break;
-
-    buffer = mem_alloc(MEM_ALLOC_SIZE);
+  if (size > bufree)
+  {
+    buffer = mem_alloc (MEM_ALLOC_SIZE);
     bufree = MEM_ALLOC_SIZE;
-  } while (1);
+  }
 
-  p = mem_alloc(size + mask);
-  p += mask;
-  p -= (size_t)p & mask;
+  char *p = buffer;
+
+  buffer += size;
+  bufree -= size;
+
   return p;
 }
 
-static void *mem_calloc_tiny(size_t count, size_t size)
+static void *mem_calloc_tiny (const size_t count, const size_t size)
 {
-  void *cp = mem_alloc_tiny(count * size, size);
-  memset(cp, 0, size);
+  void *cp = mem_alloc_tiny (count * size);
+
+  memset (cp, 0, size);
+
   return cp;
 }
 
@@ -300,7 +292,7 @@ static void check_realloc_elems (db_entry_t *db_entry, int pw_max)
 
     for (u32 i = elems_alloc; i < elems_alloc_new; i++)
     {
-      db_entry->elems_buf[i].buf = mem_calloc_tiny(pw_max, 1);
+      db_entry->elems_buf[i].buf = mem_calloc_tiny (pw_max, 1);
     }
   }
 }
@@ -328,7 +320,7 @@ static void check_realloc_chains (db_entry_t *db_entry, int pw_max)
 
     for (u32 i = chains_alloc; i < chains_alloc_new; i++)
     {
-      db_entry->chains_buf[i].buf = mem_calloc_tiny(pw_max, 1);
+      db_entry->chains_buf[i].buf = mem_calloc_tiny (pw_max, 1);
     }
   }
 }
