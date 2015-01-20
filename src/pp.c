@@ -53,13 +53,13 @@ typedef struct
 
 typedef struct
 {
-  u8    buf[IN_LEN_MAX];
+  u8    *buf;
 
 } elem_t;
 
 typedef struct
 {
-  u8    buf[IN_LEN_MAX];
+  u8    *buf;
   int   cnt;
 
   mpz_t ks_cnt;
@@ -172,6 +172,65 @@ static const char *USAGE_BIG[] =
   NULL
 };
 
+#define MEM_ALLOC_SIZE			0x10000
+#define MEM_ALLOC_MAX_WASTE		0xff
+
+static void *mem_alloc(size_t size)
+{
+  void *res;
+
+  if (!size) return NULL;
+
+  if (!(res = malloc(size))) {
+    fprintf(stderr, "malloc: %s\n", strerror(ENOMEM));
+    exit(-1);
+  }
+
+  return res;
+}
+
+static void *mem_alloc_tiny(size_t size, size_t align)
+{
+  static char *buffer = NULL;
+  static size_t bufree = 0;
+  size_t mask;
+  char *p;
+
+  mask = align - 1;
+
+  do {
+    if (buffer) {
+      size_t need = size + mask - (((size_t)buffer + mask) & mask);
+      if (bufree >= need) {
+        p = buffer;
+        p += mask;
+        p -= (size_t)p & mask;
+        bufree -= need;
+        buffer = p + size;
+        return p;
+      }
+    }
+
+    if (size + mask > MEM_ALLOC_SIZE || bufree > MEM_ALLOC_MAX_WASTE)
+      break;
+
+    buffer = mem_alloc(MEM_ALLOC_SIZE);
+    bufree = MEM_ALLOC_SIZE;
+  } while (1);
+
+  p = mem_alloc(size + mask);
+  p += mask;
+  p -= (size_t)p & mask;
+  return p;
+}
+
+static void *mem_calloc_tiny(size_t count, size_t size)
+{
+  void *cp = mem_alloc_tiny(count * size, size);
+  memset(cp, 0, size);
+  return cp;
+}
+
 static void usage_mini_print (const char *progname)
 {
   int i;
@@ -218,7 +277,7 @@ static void usage_big_print (const char *progname)
   }
 }
 
-static void check_realloc_elems (db_entry_t *db_entry)
+static void check_realloc_elems (db_entry_t *db_entry, int pw_max)
 {
   if (db_entry->elems_cnt == db_entry->elems_alloc)
   {
@@ -238,10 +297,15 @@ static void check_realloc_elems (db_entry_t *db_entry)
     memset (&db_entry->elems_buf[elems_alloc], 0, ALLOC_NEW_ELEMS * sizeof (elem_t));
 
     db_entry->elems_alloc = elems_alloc_new;
+
+    for (u32 i = elems_alloc; i < elems_alloc_new; i++)
+    {
+      db_entry->elems_buf[i].buf = mem_calloc_tiny(pw_max, 1);
+    }
   }
 }
 
-static void check_realloc_chains (db_entry_t *db_entry)
+static void check_realloc_chains (db_entry_t *db_entry, int pw_max)
 {
   if (db_entry->chains_cnt == db_entry->chains_alloc)
   {
@@ -261,6 +325,11 @@ static void check_realloc_chains (db_entry_t *db_entry)
     memset (&db_entry->chains_buf[chains_alloc], 0, ALLOC_NEW_CHAINS * sizeof (chain_t));
 
     db_entry->chains_alloc = chains_alloc_new;
+
+    for (u32 i = chains_alloc; i < chains_alloc_new; i++)
+    {
+      db_entry->chains_buf[i].buf = mem_calloc_tiny(pw_max, 1);
+    }
   }
 }
 
@@ -419,7 +488,7 @@ static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db
 
     const u64 elems_idx = cur_chain_ks_poses[idx];
 
-    memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
+    memcpy (pw_buf, db_entry->elems_buf[elems_idx].buf, db_key);
 
     pw_buf += db_key;
   }
@@ -445,14 +514,14 @@ static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_
 
     if (elems_idx < elems_cnt)
     {
-      memcpy (pw_buf, &db_entry->elems_buf[elems_idx], db_key);
+      memcpy (pw_buf, db_entry->elems_buf[elems_idx].buf, db_key);
 
       break;
     }
 
     cur_chain_ks_poses[idx] = 0;
 
-    memcpy (pw_buf, &db_entry->elems_buf[0], db_key);
+    memcpy (pw_buf, db_entry->elems_buf[0].buf, db_key);
 
     pw_buf += db_key;
   }
@@ -700,11 +769,11 @@ int main (int argc, char *argv[])
     const int input_len = in_superchop (input_buf);
 
     if (input_len < IN_LEN_MIN) continue;
-    if (input_len > IN_LEN_MAX) continue;
+    if (input_len > pw_max) continue;
 
     db_entry_t *db_entry = &db_entries[input_len];
 
-    check_realloc_elems (db_entry);
+    check_realloc_elems (db_entry, pw_max);
 
     elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
@@ -714,7 +783,7 @@ int main (int argc, char *argv[])
 
     if (case_permute)
     {
-      check_realloc_elems (db_entry);
+      check_realloc_elems (db_entry, pw_max);
 
       elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
@@ -756,6 +825,8 @@ int main (int argc, char *argv[])
     const int chains_cnt = 1 << pw_len1;
 
     chain_t chain_buf_new;
+    u8 buf[IN_LEN_MAX];
+    chain_buf_new.buf = buf;
 
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
@@ -779,11 +850,15 @@ int main (int argc, char *argv[])
 
       // add chain to database
 
-      check_realloc_chains (db_entry);
+      check_realloc_chains (db_entry, pw_max);
 
       chain_t *chain_buf = &db_entry->chains_buf[db_entry->chains_cnt];
+      u8 *buf_ptr = chain_buf->buf;
 
       memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
+      chain_buf->buf = buf_ptr;
+
+      memcpy (chain_buf->buf, chain_buf_new.buf, pw_max);
 
       mpz_init_set_si (chain_buf->ks_cnt, 0);
       mpz_init_set_si (chain_buf->ks_pos, 0);
