@@ -24,7 +24,7 @@
 
 #define IN_LEN_MIN    1
 #define IN_LEN_MAX    32
-#define OUT_LEN_MAX   125
+#define OUT_LEN_MAX   32 /* Limited by (u32)(1 << pw_len - 1) */
 #define PW_MIN        1
 #define PW_MAX        16
 #define ELEM_CNT_MIN  1
@@ -54,13 +54,13 @@ typedef struct
 
 typedef struct
 {
-  u8    *buf;
+  u8   *buf;
 
 } elem_t;
 
 typedef struct
 {
-  u8    *buf;
+  u8   *buf;
   int   cnt;
 
   mpz_t ks_cnt;
@@ -530,8 +530,8 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
 
 int main (int argc, char *argv[])
 {
-  mpz_t pw_ks_pos[IN_LEN_MAX + 1];
-  mpz_t pw_ks_cnt[IN_LEN_MAX + 1];
+  mpz_t pw_ks_pos[OUT_LEN_MAX + 1];
+  mpz_t pw_ks_cnt[OUT_LEN_MAX + 1];
 
   mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
@@ -804,15 +804,15 @@ int main (int argc, char *argv[])
 
     const int pw_len1 = pw_len - 1;
 
-    const int chains_cnt = 1 << pw_len1;
+    const u32 chains_cnt = 1 << pw_len1;
 
-    u8 buf[pw_len];
+    u8 buf[OUT_LEN_MAX];
 
     chain_t chain_buf_new;
 
     chain_buf_new.buf = buf;
 
-    for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
+    for (u32 chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
       chain_gen_with_idx (&chain_buf_new, pw_len1, chains_idx);
 
