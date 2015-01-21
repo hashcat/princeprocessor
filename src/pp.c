@@ -215,17 +215,6 @@ static void *mem_alloc_tiny (const size_t size)
   return p;
 }
 
-#if 0
-static void *mem_calloc_tiny (const size_t count, const size_t size)
-{
-  void *cp = mem_alloc_tiny (count * size);
-
-  memset (cp, 0, size);
-
-  return cp;
-}
-#endif
-
 static void usage_mini_print (const char *progname)
 {
   int i;
@@ -284,7 +273,7 @@ static void check_realloc_elems (db_entry_t *db_entry)
 
     if (db_entry->elems_buf == NULL)
     {
-      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n", (size_t) elems_alloc_new * sizeof (elem_t));
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes\n", (size_t) elems_alloc_new * sizeof (elem_t));
 
       exit (-1);
     }
@@ -307,7 +296,7 @@ static void check_realloc_chains (db_entry_t *db_entry)
 
     if (db_entry->chains_buf == NULL)
     {
-      fprintf (stderr, "Out of memory trying to allocate %zu bytes!\n", (size_t) chains_alloc_new * sizeof (chain_t));
+      fprintf (stderr, "Out of memory trying to allocate %zu bytes\n", (size_t) chains_alloc_new * sizeof (chain_t));
 
       exit (-1);
     }
@@ -764,7 +753,8 @@ int main (int argc, char *argv[])
 
     elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
-    elem_buf->buf = mem_alloc_tiny(input_len);
+    elem_buf->buf = mem_alloc_tiny (input_len);
+
     memcpy (elem_buf->buf, input_buf, input_len);
 
     db_entry->elems_cnt++;
@@ -784,7 +774,8 @@ int main (int argc, char *argv[])
       {
         input_buf[0] = new_cu;
 
-        elem_buf->buf = mem_alloc_tiny(input_len);
+        elem_buf->buf = mem_alloc_tiny (input_len);
+
         memcpy (elem_buf->buf, input_buf, input_len);
 
         db_entry->elems_cnt++;
@@ -793,6 +784,8 @@ int main (int argc, char *argv[])
       if (old_c != new_cl)
       {
         input_buf[0] = new_cl;
+
+        elem_buf->buf = mem_alloc_tiny (input_len);
 
         memcpy (elem_buf->buf, input_buf, input_len);
 
@@ -813,8 +806,10 @@ int main (int argc, char *argv[])
 
     const int chains_cnt = 1 << pw_len1;
 
-    chain_t chain_buf_new;
     u8 buf[pw_len];
+
+    chain_t chain_buf_new;
+
     chain_buf_new.buf = buf;
 
     for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
@@ -845,7 +840,8 @@ int main (int argc, char *argv[])
 
       memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
 
-      chain_buf->buf = mem_alloc_tiny(pw_len);
+      chain_buf->buf = mem_alloc_tiny (pw_len);
+
       memcpy (chain_buf->buf, chain_buf_new.buf, pw_len);
 
       mpz_init_set_si (chain_buf->ks_cnt, 0);
