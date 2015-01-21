@@ -187,7 +187,7 @@ static void *mem_alloc (const size_t size)
   return res;
 }
 
-static void *mem_alloc_tiny (const size_t size)
+static void *malloc_tiny (const size_t size)
 {
   #define MEM_ALLOC_SIZE 0x10000
 
@@ -707,7 +707,7 @@ int main (int argc, char *argv[])
   pw_order_t *pw_orders    = (pw_order_t *) calloc (pw_max + 1, sizeof (pw_order_t));
   u64        *wordlen_dist = (u64 *)        calloc (pw_max + 1, sizeof (u64));
 
-  out_t *out = (out_t *) malloc (sizeof (out_t));
+  out_t *out = (out_t *) mem_alloc (sizeof (out_t));
 
   out->fp  = stdout;
   out->len = 0;
@@ -753,7 +753,7 @@ int main (int argc, char *argv[])
 
     elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
-    elem_buf->buf = mem_alloc_tiny (input_len);
+    elem_buf->buf = malloc_tiny (input_len);
 
     memcpy (elem_buf->buf, input_buf, input_len);
 
@@ -774,7 +774,7 @@ int main (int argc, char *argv[])
       {
         input_buf[0] = new_cu;
 
-        elem_buf->buf = mem_alloc_tiny (input_len);
+        elem_buf->buf = malloc_tiny (input_len);
 
         memcpy (elem_buf->buf, input_buf, input_len);
 
@@ -785,7 +785,7 @@ int main (int argc, char *argv[])
       {
         input_buf[0] = new_cl;
 
-        elem_buf->buf = mem_alloc_tiny (input_len);
+        elem_buf->buf = malloc_tiny (input_len);
 
         memcpy (elem_buf->buf, input_buf, input_len);
 
@@ -840,7 +840,7 @@ int main (int argc, char *argv[])
 
       memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
 
-      chain_buf->buf = mem_alloc_tiny (pw_len);
+      chain_buf->buf = malloc_tiny (pw_len);
 
       memcpy (chain_buf->buf, chain_buf_new.buf, pw_len);
 
