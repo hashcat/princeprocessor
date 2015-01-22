@@ -4,7 +4,7 @@
 - Add --case-permute amplifier option, default is disabled
 - Fixed buffer overflow
 - Fixed accidental reverted changes
-- Bump the maximum output length limit
+- Fixed a bug where ee actually couldn't correctly support output longer than 31 but 32 is supported
 - More memory savings: Use only the actual space needed for each word
 
 * v0.18 -> v0.19:
