@@ -24,7 +24,7 @@
 
 #define IN_LEN_MIN    1
 #define IN_LEN_MAX    32
-#define OUT_LEN_MAX   125
+#define OUT_LEN_MAX   32 /* Limited by (u32)(1 << pw_len - 1) */
 #define PW_MIN        1
 #define PW_MAX        16
 #define ELEM_CNT_MIN  1
@@ -54,13 +54,13 @@ typedef struct
 
 typedef struct
 {
-  u8    *buf;
+  u8   *buf;
 
 } elem_t;
 
 typedef struct
 {
-  u8    *buf;
+  u8   *buf;
   int   cnt;
 
   mpz_t ks_cnt;
@@ -187,7 +187,7 @@ static void *mem_alloc (const size_t size)
   return res;
 }
 
-static void *mem_alloc_tiny (const size_t size)
+static void *malloc_tiny (const size_t size)
 {
   #define MEM_ALLOC_SIZE 0x10000
 
@@ -530,8 +530,8 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
 
 int main (int argc, char *argv[])
 {
-  mpz_t pw_ks_pos[IN_LEN_MAX + 1];
-  mpz_t pw_ks_cnt[IN_LEN_MAX + 1];
+  mpz_t pw_ks_pos[OUT_LEN_MAX + 1];
+  mpz_t pw_ks_cnt[OUT_LEN_MAX + 1];
 
   mpz_t iter_max;         mpz_init_set_si (iter_max,        0);
   mpz_t total_ks_cnt;     mpz_init_set_si (total_ks_cnt,    0);
@@ -707,7 +707,7 @@ int main (int argc, char *argv[])
   pw_order_t *pw_orders    = (pw_order_t *) calloc (pw_max + 1, sizeof (pw_order_t));
   u64        *wordlen_dist = (u64 *)        calloc (pw_max + 1, sizeof (u64));
 
-  out_t *out = (out_t *) malloc (sizeof (out_t));
+  out_t *out = (out_t *) mem_alloc (sizeof (out_t));
 
   out->fp  = stdout;
   out->len = 0;
@@ -753,7 +753,7 @@ int main (int argc, char *argv[])
 
     elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
 
-    elem_buf->buf = mem_alloc_tiny (input_len);
+    elem_buf->buf = malloc_tiny (input_len);
 
     memcpy (elem_buf->buf, input_buf, input_len);
 
@@ -774,7 +774,7 @@ int main (int argc, char *argv[])
       {
         input_buf[0] = new_cu;
 
-        elem_buf->buf = mem_alloc_tiny (input_len);
+        elem_buf->buf = malloc_tiny (input_len);
 
         memcpy (elem_buf->buf, input_buf, input_len);
 
@@ -785,7 +785,7 @@ int main (int argc, char *argv[])
       {
         input_buf[0] = new_cl;
 
-        elem_buf->buf = mem_alloc_tiny (input_len);
+        elem_buf->buf = malloc_tiny (input_len);
 
         memcpy (elem_buf->buf, input_buf, input_len);
 
@@ -804,15 +804,15 @@ int main (int argc, char *argv[])
 
     const int pw_len1 = pw_len - 1;
 
-    const int chains_cnt = 1 << pw_len1;
+    const u32 chains_cnt = 1 << pw_len1;
 
-    u8 buf[pw_len];
+    u8 buf[OUT_LEN_MAX];
 
     chain_t chain_buf_new;
 
     chain_buf_new.buf = buf;
 
-    for (int chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
+    for (u32 chains_idx = 0; chains_idx < chains_cnt; chains_idx++)
     {
       chain_gen_with_idx (&chain_buf_new, pw_len1, chains_idx);
 
@@ -840,7 +840,7 @@ int main (int argc, char *argv[])
 
       memcpy (chain_buf, &chain_buf_new, sizeof (chain_t));
 
-      chain_buf->buf = mem_alloc_tiny (pw_len);
+      chain_buf->buf = malloc_tiny (pw_len);
 
       memcpy (chain_buf->buf, chain_buf_new.buf, pw_len);
 
