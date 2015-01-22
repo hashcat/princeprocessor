@@ -80,7 +80,6 @@ typedef struct
   int      chains_alloc;
 
   u64      cur_chain_ks_poses[OUT_LEN_MAX];
-
 } db_entry_t;
 
 typedef struct
@@ -194,7 +193,6 @@ static void *malloc_tiny (const size_t size)
   #else
   #define MEM_ALLOC_SIZE 0x10000
   #endif
-
   if (size > MEM_ALLOC_SIZE)
   {
     // we can't handle it here
@@ -545,15 +543,13 @@ int main (int argc, char *argv[])
   mpz_t limit;            mpz_init_set_si (limit,           0);
   mpz_t tmp;              mpz_init_set_si (tmp,             0);
 
-  #define UNSET             -1
-
   int     version       = 0;
   int     usage         = 0;
   int     keyspace      = 0;
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
   int     elem_cnt_min  = ELEM_CNT_MIN;
-  int     elem_cnt_max  = UNSET;
+  int     elem_cnt_max  = ELEM_CNT_MAX;
   int     wl_dist_len   = WL_DIST_LEN;
   int     case_permute  = CASE_PERMUTE;
   char   *output_file   = NULL;
@@ -588,6 +584,8 @@ int main (int argc, char *argv[])
     {0, 0, 0, 0}
   };
 
+  int elem_cnt_max_chgd = 0;
+
   int option_index = 0;
 
   int c;
@@ -596,25 +594,28 @@ int main (int argc, char *argv[])
   {
     switch (c)
     {
-      case IDX_VERSION:       version         = 1;              break;
-      case IDX_USAGE:         usage           = 1;              break;
-      case IDX_KEYSPACE:      keyspace        = 1;              break;
-      case IDX_PW_MIN:        pw_min          = atoi (optarg);  break;
-      case IDX_PW_MAX:        pw_max          = atoi (optarg);  break;
-      case IDX_ELEM_CNT_MIN:  elem_cnt_min    = atoi (optarg);  break;
-      case IDX_ELEM_CNT_MAX:  elem_cnt_max    = atoi (optarg);  break;
-      case IDX_WL_DIST_LEN:   wl_dist_len     = 1;              break;
-      case IDX_CASE_PERMUTE:  case_permute    = 1;              break;
-      case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);   break;
-      case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);   break;
-      case IDX_OUTPUT_FILE:   output_file     = optarg;         break;
+      case IDX_VERSION:       version           = 1;              break;
+      case IDX_USAGE:         usage             = 1;              break;
+      case IDX_KEYSPACE:      keyspace          = 1;              break;
+      case IDX_PW_MIN:        pw_min            = atoi (optarg);  break;
+      case IDX_PW_MAX:        pw_max            = atoi (optarg);  break;
+      case IDX_ELEM_CNT_MIN:  elem_cnt_min      = atoi (optarg);  break;
+      case IDX_ELEM_CNT_MAX:  elem_cnt_max      = atoi (optarg);
+                              elem_cnt_max_chgd = 1;              break;
+      case IDX_WL_DIST_LEN:   wl_dist_len       = 1;              break;
+      case IDX_CASE_PERMUTE:  case_permute      = 1;              break;
+      case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);     break;
+      case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);     break;
+      case IDX_OUTPUT_FILE:   output_file       = optarg;         break;
 
       default: return (-1);
     }
   }
 
-  if (elem_cnt_max == UNSET)
-    elem_cnt_max = MIN(pw_max, ELEM_CNT_MAX);
+  if (elem_cnt_max_chgd == 0)
+  {
+    elem_cnt_max = MIN (pw_max, ELEM_CNT_MAX);
+  }
 
   if (usage)
   {
