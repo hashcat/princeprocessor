@@ -79,7 +79,7 @@ typedef struct
   int      chains_pos;
   int      chains_alloc;
 
-  u64      cur_chain_ks_poses[IN_LEN_MAX];
+  u64      cur_chain_ks_poses[OUT_LEN_MAX];
 
 } db_entry_t;
 
@@ -189,7 +189,11 @@ static void *mem_alloc (const size_t size)
 
 static void *malloc_tiny (const size_t size)
 {
+  #ifdef DEBUG
+  #define MEM_ALLOC_SIZE 0 /* It's hard to debug BOF with tiny alloc */
+  #else
   #define MEM_ALLOC_SIZE 0x10000
+  #endif
 
   if (size > MEM_ALLOC_SIZE)
   {
@@ -428,7 +432,7 @@ static void chain_ks (const chain_t *chain_buf, const db_entry_t *db_entries, mp
   }
 }
 
-static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t *tmp, u64 cur_chain_ks_poses[IN_LEN_MAX])
+static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_entries, mpz_t *tmp, u64 cur_chain_ks_poses[OUT_LEN_MAX])
 {
   const u8 *buf = chain_buf->buf;
 
@@ -448,7 +452,7 @@ static void set_chain_ks_poses (const chain_t *chain_buf, const db_entry_t *db_e
   }
 }
 
-static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db_entries, const u64 cur_chain_ks_poses[IN_LEN_MAX], char *pw_buf)
+static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db_entries, const u64 cur_chain_ks_poses[OUT_LEN_MAX], char *pw_buf)
 {
   const u8 *buf = chain_buf->buf;
 
@@ -468,7 +472,7 @@ static void chain_set_pwbuf_init (const chain_t *chain_buf, const db_entry_t *db
   }
 }
 
-static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_t *db_entries, u64 cur_chain_ks_poses[IN_LEN_MAX], char *pw_buf)
+static void chain_set_pwbuf_increment (const chain_t *chain_buf, const db_entry_t *db_entries, u64 cur_chain_ks_poses[OUT_LEN_MAX], char *pw_buf)
 {
   const u8 *buf = chain_buf->buf;
 
@@ -541,13 +545,15 @@ int main (int argc, char *argv[])
   mpz_t limit;            mpz_init_set_si (limit,           0);
   mpz_t tmp;              mpz_init_set_si (tmp,             0);
 
+  #define UNSET             -1
+
   int     version       = 0;
   int     usage         = 0;
   int     keyspace      = 0;
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
   int     elem_cnt_min  = ELEM_CNT_MIN;
-  int     elem_cnt_max  = ELEM_CNT_MAX;
+  int     elem_cnt_max  = UNSET;
   int     wl_dist_len   = WL_DIST_LEN;
   int     case_permute  = CASE_PERMUTE;
   char   *output_file   = NULL;
@@ -606,6 +612,9 @@ int main (int argc, char *argv[])
       default: return (-1);
     }
   }
+
+  if (elem_cnt_max == UNSET)
+    elem_cnt_max = MIN(pw_max, ELEM_CNT_MAX);
 
   if (usage)
   {
@@ -850,7 +859,7 @@ int main (int argc, char *argv[])
       db_entry->chains_cnt++;
     }
 
-    memset (db_entry->cur_chain_ks_poses, 0, IN_LEN_MAX * sizeof (u64));
+    memset (db_entry->cur_chain_ks_poses, 0, OUT_LEN_MAX * sizeof (u64));
   }
 
   /**
@@ -1205,7 +1214,7 @@ int main (int argc, char *argv[])
         {
           db_entry->chains_pos++;
 
-          memset (db_entry->cur_chain_ks_poses, 0, IN_LEN_MAX * sizeof (u64));
+          memset (db_entry->cur_chain_ks_poses, 0, OUT_LEN_MAX * sizeof (u64));
         }
 
         if (mpz_cmp (total_ks_pos, total_ks_cnt) == 0) break;
