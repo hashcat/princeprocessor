@@ -541,13 +541,15 @@ int main (int argc, char *argv[])
   mpz_t limit;            mpz_init_set_si (limit,           0);
   mpz_t tmp;              mpz_init_set_si (tmp,             0);
 
+  #define UNSET             -1
+
   int     version       = 0;
   int     usage         = 0;
   int     keyspace      = 0;
   int     pw_min        = PW_MIN;
   int     pw_max        = PW_MAX;
   int     elem_cnt_min  = ELEM_CNT_MIN;
-  int     elem_cnt_max  = ELEM_CNT_MAX;
+  int     elem_cnt_max  = UNSET;
   int     wl_dist_len   = WL_DIST_LEN;
   int     case_permute  = CASE_PERMUTE;
   char   *output_file   = NULL;
@@ -606,6 +608,9 @@ int main (int argc, char *argv[])
       default: return (-1);
     }
   }
+
+  if (elem_cnt_max == UNSET)
+    elem_cnt_max = MIN(pw_max, ELEM_CNT_MAX);
 
   if (usage)
   {
