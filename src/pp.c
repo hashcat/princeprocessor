@@ -189,7 +189,11 @@ static void *mem_alloc (const size_t size)
 
 static void *malloc_tiny (const size_t size)
 {
+  #ifdef DEBUG
+  #define MEM_ALLOC_SIZE 0 /* It's hard to debug BOF with tiny alloc */
+  #else
   #define MEM_ALLOC_SIZE 0x10000
+  #endif
 
   if (size > MEM_ALLOC_SIZE)
   {
