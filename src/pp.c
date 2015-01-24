@@ -31,11 +31,15 @@
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
 #define CASE_PERMUTE  0
+#define DUPE_CHECK    0
+
+#define DUPE_HASH_LOG 26
 
 #define VERSION_BIN   20
 
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
+#define ALLOC_DUPES      0x100000
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -154,6 +158,7 @@ static const char *USAGE_BIG[] =
   "       --elem-cnt-min=NUM    Minimum number of elements per chain",
   "       --elem-cnt-max=NUM    Maximum number of elements per chain",
   "       --wl-dist-len         Calculate output length distribution from wordlist",
+  "       --dupe-check          Suppress dupes from input (slower inital load)",
   "",
   "* Resources:",
   "",
@@ -530,7 +535,7 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
   chain_buf->cnt++;
 }
 
-static void add_elem(db_entry_t *db_entry, char *input_buf, int input_len)
+static char *add_elem(db_entry_t *db_entry, char *input_buf, int input_len)
 {
   check_realloc_elems (db_entry);
 
@@ -541,6 +546,91 @@ static void add_elem(db_entry_t *db_entry, char *input_buf, int input_len)
   memcpy (elem_buf->buf, input_buf, input_len);
 
   db_entry->elems_cnt++;
+
+  return (char*)elem_buf->buf;
+}
+
+static unsigned int hash_log, hash_size, hash_mask, hash_alloc;
+#define ENTRY_END_HASH 0xFFFFFFFF
+#define ENTRY_END_LIST 0xFFFFFFFE
+
+static inline unsigned int line_hash(char *line)
+{
+  unsigned int hash, extra;
+  char *p;
+
+  p = line + 2;
+  hash = (unsigned char)line[0];
+  if (!hash)
+    goto out;
+  extra = (unsigned char)line[1];
+  if (!extra)
+    goto out;
+
+  while (*p) {
+    hash <<= 3; extra <<= 2;
+    hash += (unsigned char)p[0];
+    if (!p[1]) break;
+    extra += (unsigned char)p[1];
+    p += 2;
+    if (hash & 0xe0000000) {
+      hash ^= hash >> hash_log;
+      extra ^= extra >> hash_log;
+      hash &= hash_mask;
+    }
+  }
+
+  hash -= extra;
+  hash ^= extra << (hash_log / 2);
+
+  hash ^= hash >> hash_log;
+
+out:
+  hash &= hash_mask;
+  return hash;
+}
+
+typedef struct {
+  u32 next;
+  char *element;
+} element_st;
+
+static struct {
+  u32 *hash;
+  element_st *data;
+} uniq_buf;
+
+static inline int add_uniq(db_entry_t *db_entry, char *line, int len)
+{
+  static unsigned int index;
+  unsigned int current, last, linehash;
+
+  linehash = line_hash(line);
+  current = uniq_buf.hash[linehash];
+  last = current;
+  while (current != ENTRY_END_HASH) {
+    if (!strncmp(line, uniq_buf.data[current].element, len))
+      break;
+    last = current;
+    current = uniq_buf.data[current].next;
+  }
+  if (current != ENTRY_END_HASH)
+    return 0;
+
+  if (last == ENTRY_END_HASH)
+    uniq_buf.hash[linehash] = index;
+  else
+    uniq_buf.data[last].next = index;
+
+  if (index == hash_alloc) {
+    hash_alloc += ALLOC_DUPES;
+    uniq_buf.data = realloc(uniq_buf.data, hash_alloc * sizeof(element_st));
+  }
+  uniq_buf.data[index].element = add_elem(db_entry, line, len);
+  uniq_buf.data[index].next = ENTRY_END_HASH;
+  index++;
+
+  return 1;
 }
 
 int main (int argc, char *argv[])
@@ -565,6 +655,7 @@ int main (int argc, char *argv[])
   int     elem_cnt_max  = ELEM_CNT_MAX;
   int     wl_dist_len   = WL_DIST_LEN;
   int     case_permute  = CASE_PERMUTE;
+  int     dupe_check    = DUPE_CHECK;
   char   *output_file   = NULL;
 
   #define IDX_VERSION       'V'
@@ -576,6 +667,7 @@ int main (int argc, char *argv[])
   #define IDX_KEYSPACE      0x5000
   #define IDX_WL_DIST_LEN   0x6000
   #define IDX_CASE_PERMUTE  0x7000
+  #define IDX_DUPE_CHECK    0x8000
   #define IDX_SKIP          's'
   #define IDX_LIMIT         'l'
   #define IDX_OUTPUT_FILE   'o'
@@ -591,6 +683,7 @@ int main (int argc, char *argv[])
     {"elem-cnt-max",  required_argument, 0, IDX_ELEM_CNT_MAX},
     {"wl-dist-len",   no_argument,       0, IDX_WL_DIST_LEN},
     {"case-permute",  no_argument,       0, IDX_CASE_PERMUTE},
+    {"dupe-check",    no_argument,       0, IDX_DUPE_CHECK},
     {"skip",          required_argument, 0, IDX_SKIP},
     {"limit",         required_argument, 0, IDX_LIMIT},
     {"output-file",   required_argument, 0, IDX_OUTPUT_FILE},
@@ -617,6 +710,7 @@ int main (int argc, char *argv[])
                               elem_cnt_max_chgd = 1;              break;
       case IDX_WL_DIST_LEN:   wl_dist_len       = 1;              break;
       case IDX_CASE_PERMUTE:  case_permute      = 1;              break;
+      case IDX_DUPE_CHECK:    dupe_check        = 1;              break;
       case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);     break;
       case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);     break;
       case IDX_OUTPUT_FILE:   output_file       = optarg;         break;
@@ -751,6 +845,16 @@ int main (int argc, char *argv[])
     }
   }
 
+  if (dupe_check) {
+    hash_log = DUPE_HASH_LOG;
+    hash_size = (1 << hash_log);
+    hash_mask = (hash_size - 1);
+    hash_alloc = ALLOC_DUPES;
+    uniq_buf.data = mem_alloc(hash_alloc * sizeof(element_st));
+    uniq_buf.hash = mem_alloc(hash_size * sizeof(unsigned int));
+    memset(uniq_buf.hash, 0xff, hash_size * sizeof(unsigned int));
+  }
+
   /**
    * load elems from stdin
    */
@@ -772,7 +876,10 @@ int main (int argc, char *argv[])
 
     db_entry_t *db_entry = &db_entries[input_len];
 
-    add_elem(db_entry, input_buf, input_len);
+    if (!dupe_check)
+      add_elem(db_entry, input_buf, input_len);
+    else
+      add_uniq(db_entry, input_buf, input_len);
 
     if (case_permute)
     {
@@ -785,17 +892,26 @@ int main (int argc, char *argv[])
       {
         input_buf[0] = new_cu;
 
-        add_elem(db_entry, input_buf, input_len);
+        if (!dupe_check)
+          add_elem(db_entry, input_buf, input_len);
+        else
+          add_uniq(db_entry, input_buf, input_len);
       }
 
       if (old_c != new_cl)
       {
         input_buf[0] = new_cl;
 
-        add_elem(db_entry, input_buf, input_len);
+        if (!dupe_check)
+          add_elem(db_entry, input_buf, input_len);
+        else
+          add_uniq(db_entry, input_buf, input_len);
       }
     }
   }
+
+  if (uniq_buf.hash) free(uniq_buf.hash);
+  if (uniq_buf.data) free(uniq_buf.data);
 
   /**
    * init chains

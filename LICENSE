@@ -1,6 +1,7 @@
 The MIT License (MIT)
 
-Copyright (c) 2015 Jens Steube
+Copyright (c) 2015 Jens Steube,
+Copyright (c) 2015 magnum
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +23,9 @@ SOFTWARE.
 
 ------
 
-mem_alloc_tiny() is nicked from John the Ripper password cracker,
-Copyright (c) 1996-98,2003,2010-2012 by Solar Designer
+malloc_tiny() and the hashed dupe suppression are based on code from John the
+Ripper password cracker:
+Copyright (c) 1996-99,2002-2003,2005-2006,2010-2012 by Solar Designer
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted.
