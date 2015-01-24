@@ -530,6 +530,19 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
   chain_buf->cnt++;
 }
 
+static void add_elem(db_entry_t *db_entry, char *input_buf, int input_len)
+{
+  check_realloc_elems (db_entry);
+
+  elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
+
+  elem_buf->buf = malloc_tiny (input_len);
+
+  memcpy (elem_buf->buf, input_buf, input_len);
+
+  db_entry->elems_cnt++;
+}
+
 int main (int argc, char *argv[])
 {
   mpz_t pw_ks_pos[OUT_LEN_MAX + 1];
@@ -759,22 +772,10 @@ int main (int argc, char *argv[])
 
     db_entry_t *db_entry = &db_entries[input_len];
 
-    check_realloc_elems (db_entry);
-
-    elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
-
-    elem_buf->buf = malloc_tiny (input_len);
-
-    memcpy (elem_buf->buf, input_buf, input_len);
-
-    db_entry->elems_cnt++;
+    add_elem(db_entry, input_buf, input_len);
 
     if (case_permute)
     {
-      check_realloc_elems (db_entry);
-
-      elem_t *elem_buf = &db_entry->elems_buf[db_entry->elems_cnt];
-
       const char old_c = input_buf[0];
 
       const char new_cu = toupper (old_c);
@@ -784,22 +785,14 @@ int main (int argc, char *argv[])
       {
         input_buf[0] = new_cu;
 
-        elem_buf->buf = malloc_tiny (input_len);
-
-        memcpy (elem_buf->buf, input_buf, input_len);
-
-        db_entry->elems_cnt++;
+        add_elem(db_entry, input_buf, input_len);
       }
 
       if (old_c != new_cl)
       {
         input_buf[0] = new_cl;
 
-        elem_buf->buf = malloc_tiny (input_len);
-
-        memcpy (elem_buf->buf, input_buf, input_len);
-
-        db_entry->elems_cnt++;
+        add_elem(db_entry, input_buf, input_len);
       }
     }
   }
