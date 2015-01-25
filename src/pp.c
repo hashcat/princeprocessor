@@ -39,7 +39,7 @@
 
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
-#define ALLOC_DUPES      0x100000
+#define ALLOC_NEW_DUPES  0x100000
 
 #define ENTRY_END_HASH   0xFFFFFFFF
 
@@ -621,7 +621,7 @@ static void add_uniq (db_entry_t *db_entry, char *input_buf, int input_len)
 
   if (index == uniq->alloc)
   {
-    uniq->alloc += ALLOC_DUPES;
+    uniq->alloc += ALLOC_NEW_DUPES;
 
     uniq->data = realloc (uniq->data, uniq->alloc * sizeof (uniq_data_t));
   }
@@ -835,7 +835,7 @@ int main (int argc, char *argv[])
       db_entry_t *db_entry = &db_entries[pw_len];
 
       const u32 hash_size  = 1 << DUPE_HASH_LOG;
-      const u32 hash_alloc = ALLOC_DUPES;
+      const u32 hash_alloc = ALLOC_NEW_DUPES;
 
       uniq_t *uniq = mem_alloc (sizeof (uniq_t));
 
