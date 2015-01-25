@@ -31,7 +31,7 @@
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
 #define CASE_PERMUTE  0
-#define DUPE_CHECK    0
+#define DUPE_CHECK    1
 
 #define DUPE_HASH_LOG 26
 
@@ -158,7 +158,7 @@ static const char *USAGE_BIG[] =
   "       --elem-cnt-min=NUM    Minimum number of elements per chain",
   "       --elem-cnt-max=NUM    Maximum number of elements per chain",
   "       --wl-dist-len         Calculate output length distribution from wordlist",
-  "       --dupe-check          Suppress dupes from input (slower inital load)",
+  "  -c,  --dupe-check-disable  Disable dupes check for faster inital load",
   "",
   "* Resources:",
   "",
@@ -658,35 +658,35 @@ int main (int argc, char *argv[])
   int     dupe_check    = DUPE_CHECK;
   char   *output_file   = NULL;
 
-  #define IDX_VERSION       'V'
-  #define IDX_USAGE         'h'
-  #define IDX_PW_MIN        0x1000
-  #define IDX_PW_MAX        0x2000
-  #define IDX_ELEM_CNT_MIN  0x3000
-  #define IDX_ELEM_CNT_MAX  0x4000
-  #define IDX_KEYSPACE      0x5000
-  #define IDX_WL_DIST_LEN   0x6000
-  #define IDX_CASE_PERMUTE  0x7000
-  #define IDX_DUPE_CHECK    0x8000
-  #define IDX_SKIP          's'
-  #define IDX_LIMIT         'l'
-  #define IDX_OUTPUT_FILE   'o'
+  #define IDX_VERSION             'V'
+  #define IDX_USAGE               'h'
+  #define IDX_PW_MIN              0x1000
+  #define IDX_PW_MAX              0x2000
+  #define IDX_ELEM_CNT_MIN        0x3000
+  #define IDX_ELEM_CNT_MAX        0x4000
+  #define IDX_KEYSPACE            0x5000
+  #define IDX_WL_DIST_LEN         0x6000
+  #define IDX_CASE_PERMUTE        0x7000
+  #define IDX_DUPE_CHECK_DISABLE  'c'
+  #define IDX_SKIP                's'
+  #define IDX_LIMIT               'l'
+  #define IDX_OUTPUT_FILE         'o'
 
   struct option long_options[] =
   {
-    {"version",       no_argument,       0, IDX_VERSION},
-    {"help",          no_argument,       0, IDX_USAGE},
-    {"keyspace",      no_argument,       0, IDX_KEYSPACE},
-    {"pw-min",        required_argument, 0, IDX_PW_MIN},
-    {"pw-max",        required_argument, 0, IDX_PW_MAX},
-    {"elem-cnt-min",  required_argument, 0, IDX_ELEM_CNT_MIN},
-    {"elem-cnt-max",  required_argument, 0, IDX_ELEM_CNT_MAX},
-    {"wl-dist-len",   no_argument,       0, IDX_WL_DIST_LEN},
-    {"case-permute",  no_argument,       0, IDX_CASE_PERMUTE},
-    {"dupe-check",    no_argument,       0, IDX_DUPE_CHECK},
-    {"skip",          required_argument, 0, IDX_SKIP},
-    {"limit",         required_argument, 0, IDX_LIMIT},
-    {"output-file",   required_argument, 0, IDX_OUTPUT_FILE},
+    {"version",            no_argument,       0, IDX_VERSION},
+    {"help",               no_argument,       0, IDX_USAGE},
+    {"keyspace",           no_argument,       0, IDX_KEYSPACE},
+    {"pw-min",             required_argument, 0, IDX_PW_MIN},
+    {"pw-max",             required_argument, 0, IDX_PW_MAX},
+    {"elem-cnt-min",       required_argument, 0, IDX_ELEM_CNT_MIN},
+    {"elem-cnt-max",       required_argument, 0, IDX_ELEM_CNT_MAX},
+    {"wl-dist-len",        no_argument,       0, IDX_WL_DIST_LEN},
+    {"case-permute",       no_argument,       0, IDX_CASE_PERMUTE},
+    {"dupe-check-disable", no_argument,       0, IDX_DUPE_CHECK_DISABLE},
+    {"skip",               required_argument, 0, IDX_SKIP},
+    {"limit",              required_argument, 0, IDX_LIMIT},
+    {"output-file",        required_argument, 0, IDX_OUTPUT_FILE},
     {0, 0, 0, 0}
   };
 
@@ -696,24 +696,24 @@ int main (int argc, char *argv[])
 
   int c;
 
-  while ((c = getopt_long (argc, argv, "Vhs:l:o:", long_options, &option_index)) != -1)
+  while ((c = getopt_long (argc, argv, "Vhs:l:o:c", long_options, &option_index)) != -1)
   {
     switch (c)
     {
-      case IDX_VERSION:       version           = 1;              break;
-      case IDX_USAGE:         usage             = 1;              break;
-      case IDX_KEYSPACE:      keyspace          = 1;              break;
-      case IDX_PW_MIN:        pw_min            = atoi (optarg);  break;
-      case IDX_PW_MAX:        pw_max            = atoi (optarg);  break;
-      case IDX_ELEM_CNT_MIN:  elem_cnt_min      = atoi (optarg);  break;
-      case IDX_ELEM_CNT_MAX:  elem_cnt_max      = atoi (optarg);
-                              elem_cnt_max_chgd = 1;              break;
-      case IDX_WL_DIST_LEN:   wl_dist_len       = 1;              break;
-      case IDX_CASE_PERMUTE:  case_permute      = 1;              break;
-      case IDX_DUPE_CHECK:    dupe_check        = 1;              break;
-      case IDX_SKIP:          mpz_set_str (skip,  optarg, 0);     break;
-      case IDX_LIMIT:         mpz_set_str (limit, optarg, 0);     break;
-      case IDX_OUTPUT_FILE:   output_file       = optarg;         break;
+      case IDX_VERSION:             version           = 1;              break;
+      case IDX_USAGE:               usage             = 1;              break;
+      case IDX_KEYSPACE:            keyspace          = 1;              break;
+      case IDX_PW_MIN:              pw_min            = atoi (optarg);  break;
+      case IDX_PW_MAX:              pw_max            = atoi (optarg);  break;
+      case IDX_ELEM_CNT_MIN:        elem_cnt_min      = atoi (optarg);  break;
+      case IDX_ELEM_CNT_MAX:        elem_cnt_max      = atoi (optarg);
+                                    elem_cnt_max_chgd = 1;              break;
+      case IDX_WL_DIST_LEN:         wl_dist_len       = 1;              break;
+      case IDX_CASE_PERMUTE:        case_permute      = 1;              break;
+      case IDX_DUPE_CHECK_DISABLE:  dupe_check        = 0;              break;
+      case IDX_SKIP:                mpz_set_str (skip,  optarg, 0);     break;
+      case IDX_LIMIT:               mpz_set_str (limit, optarg, 0);     break;
+      case IDX_OUTPUT_FILE:         output_file       = optarg;         break;
 
       default: return (-1);
     }
