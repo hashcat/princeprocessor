@@ -1,5 +1,6 @@
 * v0.19 -> v0.20:
 
+- Add dupe suppression
 - Add a fake-GMP header using uint128_t macros. This is to replace depency on GMP
 - Add --case-permute amplifier option, default is disabled
 - Fixed buffer overflow

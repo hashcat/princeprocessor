@@ -11,7 +11,6 @@
 #include <errno.h>
 #include <getopt.h>
 #include <ctype.h>
-#include <search.h>
 
 #include "mpz_int128.h"
 
