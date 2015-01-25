@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <ctype.h>
+#include <search.h>
 
 #include "mpz_int128.h"
 
@@ -40,6 +41,8 @@
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
 #define ALLOC_DUPES      0x100000
+
+#define ENTRY_END_HASH   0xFFFFFFFF
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -74,6 +77,25 @@ typedef struct
 
 typedef struct
 {
+  u32 next;
+
+  char *element;
+
+} uniq_data_t;
+
+typedef struct
+{
+  u32 index;
+  u32 alloc;
+
+  u32 *hash;
+
+  uniq_data_t *data;
+
+} uniq_t;
+
+typedef struct
+{
   elem_t  *elems_buf;
   u64      elems_cnt;
   u64      elems_alloc;
@@ -84,6 +106,9 @@ typedef struct
   int      chains_alloc;
 
   u64      cur_chain_ks_poses[OUT_LEN_MAX];
+
+  uniq_t  *uniq;
+
 } db_entry_t;
 
 typedef struct
@@ -198,6 +223,7 @@ static void *malloc_tiny (const size_t size)
   #else
   #define MEM_ALLOC_SIZE 0x10000
   #endif
+
   if (size > MEM_ALLOC_SIZE)
   {
     // we can't handle it here
@@ -535,7 +561,7 @@ static void chain_gen_with_idx (chain_t *chain_buf, const int len1, const int ch
   chain_buf->cnt++;
 }
 
-static char *add_elem(db_entry_t *db_entry, char *input_buf, int input_len)
+static char *add_elem (db_entry_t *db_entry, char *input_buf, int input_len)
 {
   check_realloc_elems (db_entry);
 
@@ -547,90 +573,64 @@ static char *add_elem(db_entry_t *db_entry, char *input_buf, int input_len)
 
   db_entry->elems_cnt++;
 
-  return (char*)elem_buf->buf;
+  return (char *) elem_buf->buf;
 }
 
-static unsigned int hash_log, hash_size, hash_mask, hash_alloc;
-#define ENTRY_END_HASH 0xFFFFFFFF
-#define ENTRY_END_LIST 0xFFFFFFFE
-
-static inline unsigned int line_hash(char *line)
+static u32 input_hash (char *input_buf, int input_len)
 {
-  unsigned int hash, extra;
-  char *p;
+  u32 h = 0;
 
-  p = line + 2;
-  hash = (unsigned char)line[0];
-  if (!hash)
-    goto out;
-  extra = (unsigned char)line[1];
-  if (!extra)
-    goto out;
-
-  while (*p) {
-    hash <<= 3; extra <<= 2;
-    hash += (unsigned char)p[0];
-    if (!p[1]) break;
-    extra += (unsigned char)p[1];
-    p += 2;
-    if (hash & 0xe0000000) {
-      hash ^= hash >> hash_log;
-      extra ^= extra >> hash_log;
-      hash &= hash_mask;
-    }
+  for (int i = 0; i < input_len; i++)
+  {
+    h = (h * 33) + input_buf[i];
   }
 
-  hash -= extra;
-  hash ^= extra << (hash_log / 2);
+  #define HASH_MASK ((1 << DUPE_HASH_LOG) - 1)
 
-  hash ^= hash >> hash_log;
-
-out:
-  hash &= hash_mask;
-  return hash;
+  return h & HASH_MASK;
 }
 
-typedef struct {
-  u32 next;
-  char *element;
-} element_st;
-
-static struct {
-  u32 *hash;
-  element_st *data;
-} uniq_buf;
-
-static inline int add_uniq(db_entry_t *db_entry, char *line, int len)
+static void add_uniq (db_entry_t *db_entry, char *input_buf, int input_len)
 {
-  static unsigned int index;
-  unsigned int current, last, linehash;
+  const u32 h = input_hash (input_buf, input_len);
 
-  linehash = line_hash(line);
-  current = uniq_buf.hash[linehash];
-  last = current;
-  while (current != ENTRY_END_HASH) {
-    if (!strncmp(line, uniq_buf.data[current].element, len))
-      break;
-    last = current;
-    current = uniq_buf.data[current].next;
+  uniq_t *uniq = db_entry->uniq;
+
+  u32 cur = uniq->hash[h];
+
+  u32 prev = cur;
+
+  while (cur != ENTRY_END_HASH)
+  {
+    if (memcmp (input_buf, uniq->data[cur].element, input_len) == 0) return;
+
+    prev = cur;
+
+    cur = uniq->data[cur].next;
   }
-  if (current != ENTRY_END_HASH)
-    return 0;
 
-  if (last == ENTRY_END_HASH)
-    uniq_buf.hash[linehash] = index;
+  const u32 index = uniq->index;
+
+  if (prev == ENTRY_END_HASH)
+  {
+    uniq->hash[h] = index;
+  }
   else
-    uniq_buf.data[last].next = index;
-
-  if (index == hash_alloc) {
-    hash_alloc += ALLOC_DUPES;
-    uniq_buf.data = realloc(uniq_buf.data, hash_alloc * sizeof(element_st));
+  {
+    uniq->data[prev].next = index;
   }
-  uniq_buf.data[index].element = add_elem(db_entry, line, len);
-  uniq_buf.data[index].next = ENTRY_END_HASH;
-  index++;
 
-  return 1;
+  if (index == uniq->alloc)
+  {
+    uniq->alloc += ALLOC_DUPES;
+
+    uniq->data = realloc (uniq->data, uniq->alloc * sizeof (uniq_data_t));
+  }
+
+  uniq->data[index].element = add_elem (db_entry, input_buf, input_len);
+  uniq->data[index].next    = ENTRY_END_HASH;
+
+  uniq->index++;
 }
 
 int main (int argc, char *argv[])
@@ -829,6 +829,28 @@ int main (int argc, char *argv[])
   out->fp  = stdout;
   out->len = 0;
 
+  if (dupe_check)
+  {
+    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    {
+      db_entry_t *db_entry = &db_entries[pw_len];
+
+      const u32 hash_size  = 1 << DUPE_HASH_LOG;
+      const u32 hash_alloc = ALLOC_DUPES;
+
+      uniq_t *uniq = mem_alloc (sizeof (uniq_t));
+
+      uniq->data  = mem_alloc (hash_alloc * sizeof (uniq_data_t));
+      uniq->hash  = mem_alloc (hash_size  * sizeof (u32));
+      uniq->index = 0;
+      uniq->alloc = hash_alloc;
+
+      memset (uniq->hash, 0xff, hash_size * sizeof (u32));
+
+      db_entry->uniq = uniq;
+    }
+  }
+
   /**
    * files
    */
@@ -843,16 +865,6 @@ int main (int argc, char *argv[])
 
       return (-1);
     }
-  }
-
-  if (dupe_check) {
-    hash_log = DUPE_HASH_LOG;
-    hash_size = (1 << hash_log);
-    hash_mask = (hash_size - 1);
-    hash_alloc = ALLOC_DUPES;
-    uniq_buf.data = mem_alloc(hash_alloc * sizeof(element_st));
-    uniq_buf.hash = mem_alloc(hash_size * sizeof(unsigned int));
-    memset(uniq_buf.hash, 0xff, hash_size * sizeof(unsigned int));
   }
 
   /**
@@ -877,9 +889,13 @@ int main (int argc, char *argv[])
     db_entry_t *db_entry = &db_entries[input_len];
 
     if (!dupe_check)
-      add_elem(db_entry, input_buf, input_len);
+    {
+      add_elem (db_entry, input_buf, input_len);
+    }
     else
-      add_uniq(db_entry, input_buf, input_len);
+    {
+      add_uniq (db_entry, input_buf, input_len);
+    }
 
     if (case_permute)
     {
@@ -893,9 +909,13 @@ int main (int argc, char *argv[])
         input_buf[0] = new_cu;
 
         if (!dupe_check)
-          add_elem(db_entry, input_buf, input_len);
+        {
+          add_elem (db_entry, input_buf, input_len);
+        }
         else
-          add_uniq(db_entry, input_buf, input_len);
+        {
+          add_uniq (db_entry, input_buf, input_len);
+        }
       }
 
       if (old_c != new_cl)
@@ -903,15 +923,30 @@ int main (int argc, char *argv[])
         input_buf[0] = new_cl;
 
         if (!dupe_check)
-          add_elem(db_entry, input_buf, input_len);
+        {
+          add_elem (db_entry, input_buf, input_len);
+        }
         else
-          add_uniq(db_entry, input_buf, input_len);
+        {
+          add_uniq (db_entry, input_buf, input_len);
+        }
       }
     }
   }
 
-  if (uniq_buf.hash) free(uniq_buf.hash);
-  if (uniq_buf.data) free(uniq_buf.data);
+  if (dupe_check)
+  {
+    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    {
+      db_entry_t *db_entry = &db_entries[pw_len];
+
+      uniq_t *uniq = db_entry->uniq;
+
+      free (uniq->hash);
+      free (uniq->data);
+      free (uniq);
+    }
+  }
 
   /**
    * init chains
