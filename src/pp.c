@@ -33,7 +33,7 @@
 #define CASE_PERMUTE  0
 #define DUPE_CHECK    1
 
-#define DUPE_HASH_LOG 26
+#define DUPE_HASH_LOG 23
 
 #define VERSION_BIN   20
 
