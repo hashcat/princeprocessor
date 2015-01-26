@@ -33,8 +33,6 @@
 #define CASE_PERMUTE  0
 #define DUPE_CHECK    1
 
-#define DUPE_HASH_LOG 23
-
 #define VERSION_BIN   20
 
 #define ALLOC_NEW_ELEMS  0x40000
@@ -88,6 +86,7 @@ typedef struct
   u32 alloc;
 
   u32 *hash;
+  u32 hash_mask;
 
   uniq_data_t *data;
 
@@ -152,6 +151,15 @@ static u64 DEF_WORDLEN_DIST[DEF_WORDLEN_DIST_CNT] =
   16,
   13,
   13
+};
+
+/* Losely based on rockyou-with-dupes */
+static const u32 DEF_HASH_LOG_SIZE[33] =
+{  0,
+   8, 12, 16, 20, 24, 24, 24, 24,
+  24, 24, 23, 22, 21, 20, 19, 18,
+  17, 16, 16, 16, 16, 16, 16, 16,
+  16, 16, 16, 16, 16, 16, 16, 16
 };
 
 static const char *USAGE_MINI[] =
@@ -575,7 +583,7 @@ static char *add_elem (db_entry_t *db_entry, char *input_buf, int input_len)
   return (char *) elem_buf->buf;
 }
 
-static u32 input_hash (char *input_buf, int input_len)
+static u32 input_hash (char *input_buf, int input_len, const int hash_mask)
 {
   u32 h = 0;
 
@@ -584,16 +592,14 @@ static u32 input_hash (char *input_buf, int input_len)
     h = (h * 33) + input_buf[i];
   }
 
-  #define HASH_MASK ((1 << DUPE_HASH_LOG) - 1)
-
-  return h & HASH_MASK;
+  return h & hash_mask;
 }
 
 static void add_uniq (db_entry_t *db_entry, char *input_buf, int input_len)
 {
-  const u32 h = input_hash (input_buf, input_len);
-
   uniq_t *uniq = db_entry->uniq;
+
+  const u32 h = input_hash (input_buf, input_len, uniq->hash_mask);
 
   u32 cur = uniq->hash[h];
 
@@ -834,11 +840,12 @@ int main (int argc, char *argv[])
     {
       db_entry_t *db_entry = &db_entries[pw_len];
 
-      const u32 hash_size  = 1 << DUPE_HASH_LOG;
+      const u32 hash_size = 1 << DEF_HASH_LOG_SIZE[pw_len];
       const u32 hash_alloc = ALLOC_NEW_DUPES;
 
       uniq_t *uniq = mem_alloc (sizeof (uniq_t));
 
+      uniq->hash_mask = hash_size - 1;
       uniq->data  = mem_alloc (hash_alloc * sizeof (uniq_data_t));
       uniq->hash  = mem_alloc (hash_size  * sizeof (u32));
       uniq->index = 0;
