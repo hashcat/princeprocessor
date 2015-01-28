@@ -1,5 +1,7 @@
 * v0.20 -> v0.21:
 
+- Exit if stdout is closed or has a error
+
 * v0.19 -> v0.20:
 
 - Add dupe suppression

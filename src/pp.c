@@ -377,13 +377,20 @@ static int in_superchop (char *buf)
 
 static void out_flush (out_t *out)
 {
-  if (fwrite (out->buf, 1, out->len, out->fp) != out->len)
+  const size_t n = fwrite (out->buf, 1, out->len, out->fp);
+
+  if (n != (size_t) out->len)
   {
-    if (ferror (out->fp) == 32)
+    const int err = ferror (out->fp);
+
+    if (err == EPIPE)
     {
-      exit (0); // out->fp is probably closed
+     // out->fp is probably closed
+
+      exit (0);
     }
-    exit (-1); // probably out of disk space
+
+    exit (-1);
   }
 
   out->len = 0;
