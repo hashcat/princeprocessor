@@ -850,7 +850,7 @@ int main (int argc, char *argv[])
 
   if (dupe_check)
   {
-    for (int pw_len = pw_min; pw_len <= pw_max; pw_len++)
+    for (int pw_len = IN_LEN_MIN; pw_len <= pw_max; pw_len++)
     {
       db_entry_t *db_entry = &db_entries[pw_len];
 
