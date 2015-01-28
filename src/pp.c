@@ -377,7 +377,14 @@ static int in_superchop (char *buf)
 
 static void out_flush (out_t *out)
 {
-  fwrite (out->buf, 1, out->len, out->fp);
+  if (fwrite (out->buf, 1, out->len, out->fp) != out->len)
+  {
+    if (ferror (out->fp) == 32)
+    {
+      exit (0); // out->fp is probably closed
+    }
+    exit (-1); // probably out of disk space
+  }
 
   out->len = 0;
 }
