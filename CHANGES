@@ -2,6 +2,8 @@
 
 - Exit if stdout is closed or has a error
 - Fix for "Bug --pw-min" issue
+- Print position when stopped
+- Allow wordlist as fileparameter
 
 * v0.19 -> v0.20:
 

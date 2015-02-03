@@ -167,7 +167,7 @@ static const u32 DEF_HASH_LOG_SIZE[33] =
 
 static const char *USAGE_MINI[] =
 {
-  "Usage: %s [options] < wordlist",
+  "Usage: %s [options] [<] wordlist",
   "",
   "Try --help for more help.",
   NULL
@@ -175,7 +175,7 @@ static const char *USAGE_MINI[] =
 
 static const char *USAGE_BIG[] =
 {
-  "Usage: %s [options] < wordlist",
+  "Usage: %s [options] [<] wordlist",
   "",
   "* Startup:",
   "",
@@ -782,11 +782,18 @@ int main (int argc, char *argv[])
     return (-1);
   }
 
-  if (optind != argc)
+  if ((optind != argc) && (optind + 1 != argc))
   {
     usage_mini_print (argv[0]);
 
     return (-1);
+  }
+
+  char *wordlist = NULL;
+
+  if (optind + 1 == argc)
+  {
+    wordlist = argv[optind];
   }
 
   if (pw_min <= 0)
@@ -914,7 +921,6 @@ int main (int argc, char *argv[])
     }
   }
 
-
   /*
    * catch signal user interrupt
    */
@@ -928,11 +934,25 @@ int main (int argc, char *argv[])
    * load elems from stdin
    */
 
-  while (!feof (stdin))
+  FILE *read_fp = stdin;
+
+  if (wordlist)
+  {
+    read_fp = fopen (wordlist, "rb");
+
+    if (read_fp == NULL)
+    {
+      fprintf (stderr, "%s: %s\n", wordlist, strerror (errno));
+
+      return (-1);
+    }
+  }
+
+  while (!feof (read_fp))
   {
     char buf[BUFSIZ];
 
-    char *input_buf = fgets (buf, sizeof (buf), stdin);
+    char *input_buf = fgets (buf, sizeof (buf), read_fp);
 
     if (input_buf == NULL) continue;
 
@@ -989,6 +1009,11 @@ int main (int argc, char *argv[])
         }
       }
     }
+  }
+
+  if (wordlist)
+  {
+    fclose (read_fp);
   }
 
   if (dupe_check)
