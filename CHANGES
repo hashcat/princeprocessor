@@ -4,6 +4,7 @@
 - Fix for "Bug --pw-min" issue
 - Print position when stopped
 - Allow wordlist as fileparameter
+- Load only NUM words from input wordlist or use 0 to disable
 
 * v0.19 -> v0.20:
 

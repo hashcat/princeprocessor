@@ -31,6 +31,7 @@
 #define ELEM_CNT_MIN  1
 #define ELEM_CNT_MAX  8
 #define WL_DIST_LEN   0
+#define WL_MAX        10000000
 #define CASE_PERMUTE  0
 #define DUPE_CHECK    1
 #define SAVE_POS      1
@@ -193,6 +194,7 @@ static const char *USAGE_BIG[] =
   "       --elem-cnt-min=NUM    Minimum number of elements per chain",
   "       --elem-cnt-max=NUM    Maximum number of elements per chain",
   "       --wl-dist-len         Calculate output length distribution from wordlist",
+  "       --wl-max=NUM          Load only NUM words from input wordlist or use 0 to disable",
   "  -c,  --dupe-check-disable  Disable dupes check for faster inital load",
   "       --save-pos-disable    Save the position for later resume with -s",
   "",
@@ -694,6 +696,7 @@ int main (int argc, char *argv[])
   int     elem_cnt_min  = ELEM_CNT_MIN;
   int     elem_cnt_max  = ELEM_CNT_MAX;
   int     wl_dist_len   = WL_DIST_LEN;
+  int     wl_max        = WL_MAX;
   int     case_permute  = CASE_PERMUTE;
   int     dupe_check    = DUPE_CHECK;
   int     save_pos      = SAVE_POS;
@@ -707,8 +710,9 @@ int main (int argc, char *argv[])
   #define IDX_ELEM_CNT_MAX          0x4000
   #define IDX_KEYSPACE              0x5000
   #define IDX_WL_DIST_LEN           0x6000
-  #define IDX_CASE_PERMUTE          0x7000
-  #define IDX_SAVE_POS_DISABLE      0x8000
+  #define IDX_WL_MAX                0x7000
+  #define IDX_CASE_PERMUTE          0x8000
+  #define IDX_SAVE_POS_DISABLE      0x9000
   #define IDX_DUPE_CHECK_DISABLE    'c'
   #define IDX_SKIP                  's'
   #define IDX_LIMIT                 'l'
@@ -724,6 +728,7 @@ int main (int argc, char *argv[])
     {"elem-cnt-min",          required_argument, 0, IDX_ELEM_CNT_MIN},
     {"elem-cnt-max",          required_argument, 0, IDX_ELEM_CNT_MAX},
     {"wl-dist-len",           no_argument,       0, IDX_WL_DIST_LEN},
+    {"wl-max",                required_argument, 0, IDX_WL_MAX},
     {"case-permute",          no_argument,       0, IDX_CASE_PERMUTE},
     {"dupe-check-disable",    no_argument,       0, IDX_DUPE_CHECK_DISABLE},
     {"save-pos-disable",      no_argument,       0, IDX_SAVE_POS_DISABLE},
@@ -752,6 +757,7 @@ int main (int argc, char *argv[])
       case IDX_ELEM_CNT_MAX:          elem_cnt_max      = atoi (optarg);
                                       elem_cnt_max_chgd = 1;              break;
       case IDX_WL_DIST_LEN:           wl_dist_len       = 1;              break;
+      case IDX_WL_MAX:                wl_max            = atoi (optarg);  break;
       case IDX_CASE_PERMUTE:          case_permute      = 1;              break;
       case IDX_DUPE_CHECK_DISABLE:    dupe_check        = 0;              break;
       case IDX_SAVE_POS_DISABLE:      save_pos          = 0;              break;
@@ -948,6 +954,8 @@ int main (int argc, char *argv[])
     }
   }
 
+  int wl_cnt = 0;
+
   while (!feof (read_fp))
   {
     char buf[BUFSIZ];
@@ -1009,6 +1017,10 @@ int main (int argc, char *argv[])
         }
       }
     }
+
+    wl_cnt++;
+
+    if (wl_max > 0 && wl_cnt == wl_max) break;
   }
 
   if (wordlist)
