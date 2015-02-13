@@ -18,7 +18,7 @@
 /**
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
- * Version.....: 0.21
+ * Version.....: 0.22
  * Autor.......: Jens Steube <jens.steube@gmail.com>
  * License.....: MIT
  */
@@ -37,7 +37,7 @@
 #define SAVE_POS      1
 #define SAVE_FILE     "pp.save"
 
-#define VERSION_BIN   21
+#define VERSION_BIN   22
 
 #define ALLOC_NEW_ELEMS  0x40000
 #define ALLOC_NEW_CHAINS 0x10
