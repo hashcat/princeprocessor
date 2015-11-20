@@ -761,8 +761,8 @@ int main (int argc, char *argv[])
       case IDX_CASE_PERMUTE:          case_permute      = 1;              break;
       case IDX_DUPE_CHECK_DISABLE:    dupe_check        = 0;              break;
       case IDX_SAVE_POS_DISABLE:      save_pos          = 0;              break;
-      case IDX_SKIP:                  mpz_set_str (skip,  optarg, 0);     break;
-      case IDX_LIMIT:                 mpz_set_str (limit, optarg, 0);     break;
+      case IDX_SKIP:                  mpz_set_str (skip,  optarg, 10);    break;
+      case IDX_LIMIT:                 mpz_set_str (limit, optarg, 10);    break;
       case IDX_OUTPUT_FILE:           output_file       = optarg;         break;
 
       default: return (-1);
