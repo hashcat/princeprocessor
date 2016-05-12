@@ -1,0 +1,12 @@
+# top-most EditorConfig file
+root = true
+
+# This repo is f@cked up with CRLF so this config will ensure your
+# editor keeps using the same format.
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
