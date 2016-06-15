@@ -660,7 +660,7 @@ static void add_uniq (db_entry_t *db_entry, char *input_buf, int input_len)
 
 mpz_t save;
 
-static void catch_int ()
+static void catch_int (int signum)
 {
   FILE *fp = fopen (SAVE_FILE, "w");
 
@@ -672,7 +672,7 @@ static void catch_int ()
 
   fclose (fp);
 
-  exit (0);
+  exit (signum==0?0:signum);
 }
 
 int main (int argc, char *argv[])
@@ -1475,7 +1475,7 @@ int main (int argc, char *argv[])
 
   if (save_pos)
   {
-    catch_int ();
+    catch_int (0);
   }
 
   /**
