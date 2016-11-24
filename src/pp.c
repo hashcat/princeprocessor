@@ -967,7 +967,7 @@ int main (int argc, char *argv[])
     const int input_len = in_superchop (input_buf);
 
     if (input_len < IN_LEN_MIN) continue;
-    if (input_len > IN_LEN_MAX) continue;
+    if (input_len > pw_max) continue;
 
     if (input_len > pw_max) continue;
 
