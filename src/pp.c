@@ -19,7 +19,9 @@
  * Name........: princeprocessor (pp)
  * Description.: Standalone password candidate generator using the PRINCE algorithm
  * Version.....: 0.22
- * Autor.......: Jens Steube <jens.steube@gmail.com>
+ * Authors.....: Jens Steube <jens.steube@gmail.com>
+ *               Steve Thomas (Sc00bz)
+ *               magnum <john.magnum@hushmail.com>
  * License.....: MIT
  */
 
@@ -823,9 +825,9 @@ int main (int argc, char *argv[])
     return (-1);
   }
 
-  if (elem_cnt_max <= 0)
+  if (elem_cnt_max < (1 - pw_max))
   {
-    fprintf (stderr, "Value of --elem-cnt-max (%d) must be greater than %d\n", elem_cnt_max, 0);
+    fprintf (stderr, "Value of --elem-cnt-max (%d) must be greater than %d\n", elem_cnt_max, (0 - pw_max));
 
     return (-1);
   }
@@ -837,7 +839,7 @@ int main (int argc, char *argv[])
     return (-1);
   }
 
-  if (elem_cnt_min > elem_cnt_max)
+  if (elem_cnt_max > 0 && elem_cnt_min > elem_cnt_max)
   {
     fprintf (stderr, "Value of --elem-cnt-min (%d) must be smaller or equal than value of --elem-cnt-max (%d)\n", elem_cnt_min, elem_cnt_max);
 
@@ -1078,7 +1080,20 @@ int main (int argc, char *argv[])
 
       if (valid2 == 0) continue;
 
-      int valid3 = chain_valid_with_cnt_max (&chain_buf_new, elem_cnt_max);
+      int eff_elem_cnt_max;
+
+      if (elem_cnt_max > 0)
+      {
+        eff_elem_cnt_max = elem_cnt_max;
+      }
+      else
+      {
+        eff_elem_cnt_max = pw_len + elem_cnt_max;
+
+        if (eff_elem_cnt_max <= elem_cnt_min) continue;
+      }
+
+      int valid3 = chain_valid_with_cnt_max (&chain_buf_new, eff_elem_cnt_max);
 
       if (valid3 == 0) continue;
 
