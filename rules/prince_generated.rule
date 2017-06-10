@@ -1,6 +1,6 @@
 ## Name: prince.rule
 ## Version: 1.00
-## Compatibility: hashcat v0.48+, oclHashcat v1.31+
+## Compatibility: hashcat-legacy v0.48+, hashcat v2.00+
 ##
 ## Description: 
 ##
