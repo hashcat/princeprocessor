@@ -12,6 +12,8 @@
 #include <getopt.h>
 #include <ctype.h>
 #include <signal.h>
+#include <locale.h>
+#include <windows.h>
 
 #include "mpz_int128.h"
 
@@ -679,6 +681,10 @@ static void catch_int (int signum)
 
 int main (int argc, char *argv[])
 {
+  /* Force UTF-8 encoding in windows terminal. If not set it messes upp passwords
+  containing åäö and maybe other special characters. */
+  SetConsoleOutputCP(65001)
+    
   mpz_t pw_ks_pos[OUT_LEN_MAX + 1];
   mpz_t pw_ks_cnt[OUT_LEN_MAX + 1];
 
