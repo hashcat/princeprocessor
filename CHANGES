@@ -1,5 +1,13 @@
 * v0.21 -> v0.22:
 
+- Correct spelling mistake
+- Cosmetic: 'oclHashcat' -> 'hashcat', 'hashcat' -> 'hashcat-legacy'
+- Fix signature of catch_int
+- Allow a negative --elem-cnt-max
+- Makefile cleanup: remove comments about hashcat-toolchain
+- Added .gitignore
+- Updated year in LICENSE file
+
 * v0.20 -> v0.21:
 
 - Exit if stdout is closed or has a error
