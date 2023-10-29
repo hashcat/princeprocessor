@@ -271,6 +271,10 @@ static void usage_mini_print (const char *progname)
   {
     printf (USAGE_MINI[i], progname);
 
+    #ifdef APPLE
+    putchar ('\n');
+    #endif
+
     #ifdef OSX
     putchar ('\n');
     #endif
@@ -293,6 +297,10 @@ static void usage_big_print (const char *progname)
   for (i = 0; USAGE_BIG[i] != NULL; i++)
   {
     printf (USAGE_BIG[i], progname);
+
+    #ifdef APPLE
+    putchar ('\n');
+    #endif
 
     #ifdef OSX
     putchar ('\n');
